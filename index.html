@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gesture Gallery — control a photo grid with hand gestures</title>
+<style>
+  :root {
+    --bg-0: #1c1c1e;            /* main grid background */
+    --bg-1: #2c2c2e;            /* sidebar */
+    --bg-2: #232325;            /* topbar */
+    --ink: #f2f2f7;
+    --ink-2: rgba(255,255,255,0.65);
+    --ink-3: rgba(255,255,255,0.45);
+    --sep: rgba(255,255,255,0.08);
+    --hover: rgba(255,255,255,0.06);
+    --active: rgba(255,255,255,0.12);
+    --accent: #0a84ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: var(--bg-0);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+  /* ============================================================
+     APP SHELL
+     ============================================================ */
+  .app {
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--bg-2);
+    border-bottom: 0.5px solid var(--sep);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    z-index: 30;
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .app-logo {
+    width: 18px; height: 18px;
+    color: var(--ink-2);
+  }
+  .brand {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.1px;
+  }
+  .brand-sep {
+    color: var(--ink-3);
+    font-size: 14px;
+    margin: 0 -2px;
+  }
+  .brand-app {
+    font-size: 14px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .top-icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-2);
+    transition: background 120ms ease;
+  }
+  .top-icon-btn:hover { background: var(--hover); color: var(--ink); }
+  .top-icon-btn svg { width: 16px; height: 16px; }
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f9eff, #2a6ad6);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    margin-left: 4px;
+  }
+
+  /* MAIN AREA */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 0;
+  }
+
+  /* ============================================================
+     SIDEBAR
+     ============================================================ */
+  .sidebar {
+    background: var(--bg-1);
+    border-right: 0.5px solid var(--sep);
+    overflow-y: auto;
+    padding: 10px 0 30px;
+  }
+  .sidebar::-webkit-scrollbar { width: 0; }
+  .sidebar-section {
+    padding: 6px 0 14px;
+  }
+  .sidebar-section + .sidebar-section { border-top: 0.5px solid var(--sep); }
+  .sidebar-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--ink-3);
+    padding: 10px 18px 6px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
+    margin: 1px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .sidebar-item:hover { background: var(--hover); }
+  .sidebar-item.active { background: var(--active); }
+  .sidebar-item svg {
+    width: 16px; height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .sidebar-item .count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  /* ============================================================
+     CONTENT
+     ============================================================ */
+  .content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .content-header {
+    padding: 22px 28px 14px;
+    border-bottom: 0.5px solid var(--sep);
+    background: var(--bg-0);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .content-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .content-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .content-tab {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .content-tab:hover { color: var(--ink); }
+  .content-tab.active {
+    background: rgba(255,255,255,0.12);
+    color: var(--ink);
+  }
+
+  /* PHOTO GRID */
+  .grid-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px;
+    background: var(--bg-0);
+  }
+  .grid-wrap::-webkit-scrollbar { width: 0; }
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+  }
+  .photo {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    transition: transform 380ms cubic-bezier(0.34, 1.4, 0.5, 1);
+    will-change: transform;
+    cursor: default;
+    background: #1a1a1d;
+  }
+  .photo.hovered::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(255,255,255,0.85);
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+    z-index: 4;
+  }
+  .photo.previewing {
+    transition: none;
+    z-index: 1000;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.75),
+                0 10px 30px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.12);
+    border-radius: 6px;
+  }
+  .photo.selected::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 132, 255, 0.32);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .photo .check-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    border: 1.5px solid rgba(255,255,255,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+  .photo .check-badge svg { width: 14px; height: 14px; display: block; }
+  .photo.selected .check-badge {
+    display: flex;
+    background: var(--accent);
+    border-color: #fff;
+  }
+  @keyframes tap-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.55); }
+    100% { box-shadow: 0 0 0 18px rgba(10, 132, 255, 0); }
+  }
+  .photo.tap-flash::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: tap-pulse 420ms ease-out;
+    z-index: 4;
+  }
+
+  /* ============================================================
+     CURSOR
+     ============================================================ */
+  #cursor {
+    position: fixed;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: none;
+    z-index: 1500;
+    transform: translate(-50%, -50%) scale(1);
+    transition: width 180ms cubic-bezier(0.4,0,0.2,1),
+                height 180ms cubic-bezier(0.4,0,0.2,1),
+                border-width 180ms ease,
+                background 180ms ease,
+                transform 80ms ease-out,
+                opacity 200ms;
+    opacity: 0;
+    mix-blend-mode: difference;
+  }
+  #cursor.visible { opacity: 1; }
+  #cursor.pinching {
+    width: 24px; height: 24px;
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(255,255,255,1);
+  }
+  #cursor.pointing {
+    width: 14px; height: 14px;
+    border-width: 1.5px;
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(255,255,255,1);
+    box-shadow: 0 0 0 7px rgba(255,255,255,0.10);
+  }
+  #cursor.tap-fire {
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+  #cursor.grabbing {
+    width: 30px; height: 30px;
+    border-width: 3px;
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.95);
+  }
+
+  /* ============================================================
+     CAMERA PREVIEW — collapsible
+     ============================================================ */
+  #cam {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    z-index: 200;
+  }
+  /* Tiny pill button (visible when collapsed) */
+  #cam-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(44,44,46,0.92);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 160ms ease, background 160ms ease;
+  }
+  #cam-toggle:hover { background: rgba(58,58,60,0.95); transform: scale(1.06); }
+  #cam-toggle svg { width: 18px; height: 18px; display: block; }
+  /* Expanded preview */
+  #cam-preview {
+    position: relative;
+    width: 148px;
+    height: 111px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 10px 30px rgba(0,0,0,0.6);
+    display: none;
+  }
+  #cam.expanded #cam-toggle { display: none; }
+  #cam.expanded #cam-preview { display: block; }
+  /* Video must stay rendered for MediaPipe even when preview hidden — */
+  /* keep #video in the DOM with visible:hidden when not in preview */
+  #video {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    /* Black & white + dimmed so the gesture skeleton is the star, not the face */
+    filter: grayscale(1) contrast(1.05) brightness(0.62);
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+    pointer-events: none;
+  }
+  #cam-close {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 5;
+  }
+  #cam-close:hover { background: rgba(0,0,0,0.75); }
+  #cam-label {
+    position: absolute;
+    bottom: 6px; left: 8px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.6);
+    font-family: ui-monospace, monospace;
+    letter-spacing: 0.5px;
+    z-index: 5;
+  }
+  /* Off-screen video host when collapsed — keeps the stream alive */
+  #video-host {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 320px;
+    height: 240px;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     LOADER
+     ============================================================ */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--bg-0);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    z-index: 9999;
+    transition: opacity 0.6s;
+  }
+  #loader.gone { opacity: 0; pointer-events: none; }
+  #loader .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  #loader-text { color: var(--ink-3); font-size: 13px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============================================================
+     GESTURE GUIDE CARD
+     ============================================================ */
+  #guide {
+    position: fixed;
+    right: 18px;
+    bottom: 62px;
+    left: auto;
+    width: 268px;
+    background: rgba(28,28,30,0.92);
+    border: 0.5px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 16px 16px 14px;
+    z-index: 400;
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
+  #guide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  #guide h3 {
+    font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+  #guide ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  #guide li { display: flex; gap: 9px; font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+  #guide li b { color: var(--ink); font-weight: 600; }
+  #guide .emoji { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
+  #guide .disclaimer {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 0.5px solid var(--sep);
+    font-size: 10px; color: var(--ink-3); line-height: 1.4;
+  }
+  #guide-dismiss {
+    margin-top: 12px; width: 100%;
+    padding: 8px; border-radius: 9px;
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 600;
+  }
+  #guide-dismiss:hover { filter: brightness(1.08); }
+  /* Instruction icon — sits just above the camera icon, expands/collapses the guide */
+  #guide-reopen {
+    position: fixed; right: 18px; bottom: 62px; left: auto;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(44,44,46,0.92);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    color: var(--ink); font-size: 16px; font-weight: 600;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: transform 160ms ease, background 160ms ease;
+    z-index: 400;
+  }
+  #guide-reopen:hover { background: rgba(58,58,60,0.95); transform: scale(1.06); }
+  #guide-reopen svg { width: 18px; height: 18px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <svg class="app-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="9" cy="9" r="2"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <span class="brand">Gesture Gallery</span>
+    </div>
+    <div class="topbar-right">
+      <button class="top-icon-btn" title="Upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+      </button>
+      <button class="top-icon-btn" title="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      </button>
+      <button class="top-icon-btn" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+      <div class="avatar">D</div>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <div class="sidebar-section">
+        <a class="sidebar-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Library
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Memories
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Featured Photos
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-header">Albums</div>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          My Albums
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Shared Albums
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-header">Media Types</div>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Videos
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Selfies
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="10" stroke-dasharray="2 4"/></svg>
+          Live Photos
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Portrait
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="11" y1="10" x2="11" y2="14"/><line x1="17" y1="10" x2="17" y2="14"/></svg>
+          Panoramas
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          Time-lapse
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6M14 12h6"/><path d="M4 7h12M4 17h8"/></svg>
+          Slo-mo
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><rect x="7" y="7" width="14" height="14" rx="2"/></svg>
+          Bursts
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Screenshots
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-header">Utilities</div>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Imports
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10 10 0 0 1 12 20c-7 0-11-8-11-8a18 18 0 0 1 5.06-5.94"/><path d="M1 1l22 22"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18 18 0 0 1-2.16 3.19"/></svg>
+          Hidden
+        </a>
+        <a class="sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Recently Deleted
+        </a>
+      </div>
+
+    </aside>
+
+    <!-- CONTENT -->
+    <section class="content">
+      <div class="content-header">
+        <h1 class="content-title" id="page-title">Library</h1>
+        <nav class="content-tabs">
+          <a class="content-tab">Years</a>
+          <a class="content-tab">Months</a>
+          <a class="content-tab active">All Photos</a>
+        </nav>
+      </div>
+      <div class="grid-wrap">
+        <div class="photo-grid" id="grid"></div>
+      </div>
+    </section>
+
+  </div>
+
+</div>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+
+<!-- CAMERA (collapsible) -->
+<div id="cam">
+  <button id="cam-toggle" aria-label="Show camera preview" title="Show camera">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+  </button>
+  <div id="cam-preview">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay" width="320" height="240"></canvas>
+    <button id="cam-close" aria-label="Hide camera preview" title="Hide camera">✕</button>
+    <div id="cam-label">tracking</div>
+  </div>
+</div>
+
+<!-- Hidden host: when the preview is collapsed, we move the <video> here so the
+     stream keeps producing frames for MediaPipe. -->
+<div id="video-host"></div>
+
+<!-- GESTURE GUIDE -->
+<div id="guide" class="hidden">
+  <h3>Control it with your hand ✋</h3>
+  <ul>
+    <li><span class="emoji">✋</span><span>Move your <b>open palm</b> to glide the cursor over photos.</span></li>
+    <li><span class="emoji">🤏</span><span><b>Pinch</b> thumb + index to grab a photo, then <b>pull your hand back</b> to enlarge it.</span></li>
+    <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
+    <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
+  </ul>
+  <button id="guide-dismiss">Got it</button>
+  <div class="disclaimer">Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
+</div>
+<button id="guide-reopen" title="Show gesture guide" aria-label="Show gesture guide">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+</button>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="spinner"></div>
+  <div id="loader-text">Loading hand tracker…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+
+<script>
+(function () {
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const NUM_PHOTOS = 200;
+  const PINCH_RATIO = 0.55;
+  // Closed-fist grab-scroll: how far a full-screen hand travel scrolls the grid
+  const SCROLL_GAIN = 2.6;
+  const UNPINCH_RATIO = 0.75;
+  const PULL_GAIN = 4.0;
+  const PULL_SMOOTH = 0.35;
+  // One-Euro filter parameters for the cursor — smooth at rest, snappy in motion.
+  const CURSOR_MIN_CUTOFF = 1.2;
+  const CURSOR_BETA = 0.04;
+  const CURSOR_D_CUTOFF = 1.0;
+  // Tap (fingertip-dip)
+  const TAP_DIP_DELTA = 0.08;
+  const TAP_DIP_FLOOR = 0.06;
+  const TAP_WINDOW_MS = 220;
+  const TAP_COOLDOWN_MS = 420;
+  const POSE_STICKINESS_MS = 90;
+  // Viewport edge padding for hand → viewport mapping
+  const VIEWPORT_PAD = 0.08;
+
+  // ============================================================
+  // SELF-CONTAINED PHOTO TILES
+  // No external images — each tile is a deterministic gradient generated
+  // from its index, so the gallery works offline and has zero dependencies.
+  // ============================================================
+  // Deterministic pseudo-random in [0,1) from a seed — same tiles every reload,
+  // but hues are scattered so neighbours don't share a color family.
+  function rand(seed) {
+    const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  function tileBackground(i) {
+    // Hues stay random for variety, but low saturation + a tight lightness band
+    // keep the whole grid muted and harmonious (a single dusky palette).
+    const hue   = rand(i) * 360;
+    const hue2  = (hue + 18 + rand(i + 0.3) * 30) % 360;  // gentle 2-tone, close hues
+    const angle = rand(i + 0.7) * 360;
+    const sat   = 20 + rand(i + 0.9) * 12;                // muted: ~20–32%
+    const c1 = `hsl(${hue.toFixed(0)} ${sat.toFixed(0)}% 50%)`;
+    const c2 = `hsl(${hue2.toFixed(0)} ${(sat + 4).toFixed(0)}% 34%)`;
+    const hx = (15 + rand(i + 1.3) * 65).toFixed(0);      // soft highlight position
+    const hy = (12 + rand(i + 1.7) * 60).toFixed(0);
+    return `radial-gradient(circle at ${hx}% ${hy}%, hsla(0,0%,100%,0.16), transparent 55%), `
+         + `linear-gradient(${angle.toFixed(0)}deg, ${c1}, ${c2})`;
+  }
+
+  // ============================================================
+  // ONE-EURO FILTER
+  // ============================================================
+  class OneEuroFilter {
+    constructor(minCutoff, beta, dCutoff) {
+      this.minCutoff = minCutoff; this.beta = beta; this.dCutoff = dCutoff;
+      this.xPrev = null; this.dxPrev = 0; this.tPrev = null;
+    }
+    _alpha(cutoff, dt) {
+      const r = 2 * Math.PI * cutoff * dt;
+      return r / (r + 1);
+    }
+    filter(x, tMs) {
+      if (this.tPrev === null) { this.tPrev = tMs; this.xPrev = x; return x; }
+      const dt = Math.max(0.001, (tMs - this.tPrev) / 1000);
+      const dx = (x - this.xPrev) / dt;
+      const aD = this._alpha(this.dCutoff, dt);
+      const dxHat = aD * dx + (1 - aD) * this.dxPrev;
+      const cutoff = this.minCutoff + this.beta * Math.abs(dxHat);
+      const a = this._alpha(cutoff, dt);
+      const xHat = a * x + (1 - a) * this.xPrev;
+      this.xPrev = xHat; this.dxPrev = dxHat; this.tPrev = tMs;
+      return xHat;
+    }
+    reset() { this.xPrev = null; this.dxPrev = 0; this.tPrev = null; }
+  }
+  const cursorFilterX = new OneEuroFilter(CURSOR_MIN_CUTOFF, CURSOR_BETA, CURSOR_D_CUTOFF);
+  const cursorFilterY = new OneEuroFilter(CURSOR_MIN_CUTOFF, CURSOR_BETA, CURSOR_D_CUTOFF);
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let cursorPos = { x: 0.5, y: 0.5 };
+  let isPinching = false;
+  let pinchStartHandSize = null;
+  let pinchedPhoto = null;
+  let pullAmount = 0;
+  let lastHoveredPhoto = null;
+  let currentPose = 'NONE';
+  let pendingPose = 'NONE';
+  let pendingPoseSince = 0;
+  let lastTapAt = 0;
+  let tapHistory = [];
+  let selectedSet = new Set();
+  let isFistScrolling = false;
+  let fistLastY = 0;
+
+  // ============================================================
+  // BUILD GRID
+  // ============================================================
+  const grid = document.getElementById('grid');
+  const gridWrap = document.querySelector('.grid-wrap');
+  for (let i = 0; i < NUM_PHOTOS; i++) {
+    const div = document.createElement('div');
+    div.className = 'photo';
+    div.dataset.idx = i;
+    div.style.background = tileBackground(i);
+    div.innerHTML = `
+      <div class="check-badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.2 L6.8 11.4 L12.6 4.8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke="#fff"/></svg></div>
+    `;
+    grid.appendChild(div);
+  }
+  const photoEls = Array.from(document.querySelectorAll('.photo'));
+
+  // ============================================================
+  // CURSOR + HOVER
+  // ============================================================
+  const cursorEl = document.getElementById('cursor');
+
+  function updateCursor() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const cx = cursorPos.x * vw;
+    const cy = cursorPos.y * vh;
+    cursorEl.style.left = cx + 'px';
+    cursorEl.style.top = cy + 'px';
+
+    if (!isPinching && !isFistScrolling) {
+      let hit = null;
+      for (const el of photoEls) {
+        const r = el.getBoundingClientRect();
+        if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
+          hit = el; break;
+        }
+      }
+      if (hit !== lastHoveredPhoto) {
+        if (lastHoveredPhoto) lastHoveredPhoto.classList.remove('hovered');
+        if (hit) hit.classList.add('hovered');
+        lastHoveredPhoto = hit;
+      }
+    }
+  }
+
+  // ============================================================
+  // PREVIEW (pinch + pull)
+  // ============================================================
+  function startPreview(photo, handSize) {
+    pinchedPhoto = photo;
+    pinchStartHandSize = handSize;
+    pullAmount = 0;
+    if (lastHoveredPhoto) { lastHoveredPhoto.classList.remove('hovered'); lastHoveredPhoto = null; }
+    photo.classList.add('previewing');
+  }
+
+  function updatePreview(handSize) {
+    if (!pinchedPhoto) return;
+    const sizeRatio = pinchStartHandSize / Math.max(0.03, handSize);
+    const targetPull = Math.max(0, Math.min(1, (sizeRatio - 1.0) * 1.2));
+    pullAmount = pullAmount * (1 - PULL_SMOOTH) + targetPull * PULL_SMOOTH;
+    const scale = 1 + pullAmount * (PULL_GAIN - 1);
+
+    const r = pinchedPhoto.getBoundingClientRect();
+    const photoCx = r.left + r.width / 2;
+    const photoCy = r.top + r.height / 2;
+    const cursorX = cursorPos.x * window.innerWidth;
+    const cursorY = cursorPos.y * window.innerHeight;
+    const followFactor = 0.35 + pullAmount * 0.4;
+    const tx = (cursorX - photoCx) * followFactor;
+    const ty = (cursorY - photoCy) * followFactor;
+
+    pinchedPhoto.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+  }
+
+  function endPreview() {
+    if (!pinchedPhoto) return;
+    const photo = pinchedPhoto;
+    pinchedPhoto = null;
+    pinchStartHandSize = null;
+    pullAmount = 0;
+    photo.style.transform = '';
+    setTimeout(() => photo.classList.remove('previewing'), 380);
+  }
+
+  // ============================================================
+  // SELECTION (index-finger tap)
+  // ============================================================
+  const pageTitle = document.getElementById('page-title');
+
+  function photoUnderCursor() {
+    const cx = cursorPos.x * window.innerWidth;
+    const cy = cursorPos.y * window.innerHeight;
+    for (const el of photoEls) {
+      const r = el.getBoundingClientRect();
+      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return el;
+    }
+    return null;
+  }
+
+  function refreshSelectionHeader() {
+    const n = selectedSet.size;
+    if (n === 0) { pageTitle.textContent = 'Library'; }
+    else         { pageTitle.textContent = n + ' Selected'; }
+  }
+
+  function toggleSelection(photo) {
+    const idx = photo.dataset.idx;
+    if (selectedSet.has(idx)) { selectedSet.delete(idx); photo.classList.remove('selected'); }
+    else                      { selectedSet.add(idx);    photo.classList.add('selected'); }
+    photo.classList.remove('tap-flash');
+    void photo.offsetWidth;
+    photo.classList.add('tap-flash');
+    setTimeout(() => photo.classList.remove('tap-flash'), 420);
+    refreshSelectionHeader();
+  }
+
+  function fireTapPulse() {
+    cursorEl.classList.add('tap-fire');
+    setTimeout(() => cursorEl.classList.remove('tap-fire'), 140);
+  }
+
+  // ============================================================
+  // GESTURE CLASSIFICATION
+  // ============================================================
+  const FINGERS = {
+    index:  { tip: 8,  pip: 6,  mcp: 5  },
+    middle: { tip: 12, pip: 10, mcp: 9  },
+    ring:   { tip: 16, pip: 14, mcp: 13 },
+    pinky:  { tip: 20, pip: 18, mcp: 17 },
+  };
+  function fingerExtended(lm, f) {
+    return (lm[f.pip].y - lm[f.tip].y) > 0.025;
+  }
+  function classifyPose(lm) {
+    const i = fingerExtended(lm, FINGERS.index);
+    const m = fingerExtended(lm, FINGERS.middle);
+    const r = fingerExtended(lm, FINGERS.ring);
+    const p = fingerExtended(lm, FINGERS.pinky);
+    const extended = (i?1:0) + (m?1:0) + (r?1:0) + (p?1:0);
+    if (i && !m && !r && !p) return 'POINTING';
+    if (extended >= 3) return 'OPEN';
+    if (extended === 0) return 'FIST';
+    return 'OTHER';
+  }
+  function updatePose(rawPose, now) {
+    if (rawPose !== pendingPose) { pendingPose = rawPose; pendingPoseSince = now; }
+    if (rawPose !== currentPose && (now - pendingPoseSince) >= POSE_STICKINESS_MS) {
+      if (rawPose === 'POINTING') tapHistory = [];
+      currentPose = rawPose;
+    }
+  }
+
+  function fingerBendMetric(lm) {
+    const mcp = lm[5], pip = lm[6], tip = lm[8];
+    const dx = pip.x - mcp.x;
+    const dy = pip.y - mcp.y;
+    const FACTOR = 1.4;
+    const expectedX = mcp.x + dx * (1 + FACTOR);
+    const expectedY = mcp.y + dy * (1 + FACTOR);
+    const devX = tip.x - expectedX;
+    const devY = tip.y - expectedY;
+    const handSize = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y);
+    return Math.hypot(devX, devY) / Math.max(0.01, handSize);
+  }
+
+  function detectTap(lm, now) {
+    if (currentPose !== 'POINTING' || isPinching) { tapHistory.length = 0; return false; }
+    if (now - lastTapAt < TAP_COOLDOWN_MS) return false;
+    const bend = fingerBendMetric(lm);
+    tapHistory.push({ ts: now, bend });
+    while (tapHistory.length && now - tapHistory[0].ts > TAP_WINDOW_MS) tapHistory.shift();
+    if (tapHistory.length < 3) return false;
+    let minBend = Infinity;
+    for (const h of tapHistory) if (h.bend < minBend) minBend = h.bend;
+    const rise = bend - minBend;
+    if (rise >= TAP_DIP_DELTA && bend >= TAP_DIP_FLOOR) {
+      lastTapAt = now;
+      tapHistory.length = 0;
+      return true;
+    }
+    return false;
+  }
+
+  function pinchRatio(lm) {
+    const thumb = lm[4]; const index = lm[8];
+    const tipDist = Math.hypot(thumb.x - index.x, thumb.y - index.y);
+    const handSize = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y);
+    return handSize === 0 ? Infinity : tipDist / handSize;
+  }
+  function handSizeOf(lm) { return Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y); }
+  function handCursorPos(lm) {
+    const x = (lm[0].x * 0.4 + lm[9].x * 0.6);
+    const y = (lm[0].y * 0.4 + lm[9].y * 0.6);
+    return { x: 1 - x, y: y };
+  }
+
+  function projectToViewport(handPos) {
+    const x = (handPos.x - VIEWPORT_PAD) / (1 - 2 * VIEWPORT_PAD);
+    const y = (handPos.y - VIEWPORT_PAD) / (1 - 2 * VIEWPORT_PAD);
+    return {
+      x: Math.max(0, Math.min(1, x)),
+      y: Math.max(0, Math.min(1, y)),
+    };
+  }
+
+  // ============================================================
+  // OVERLAY
+  // ============================================================
+  const overlay = document.getElementById('overlay');
+  const octx = overlay.getContext('2d');
+  const HAND_CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],
+    [0,5],[5,6],[6,7],[7,8],
+    [5,9],[9,10],[10,11],[11,12],
+    [9,13],[13,14],[14,15],[15,16],
+    [13,17],[17,18],[18,19],[19,20],
+    [0,17],
+  ];
+  function drawOverlay(lm) {
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+    if (!lm) return;
+    const w = overlay.width, h = overlay.height;
+    const color = isPinching ? '#ffd23f'
+                : currentPose === 'POINTING' ? '#1e9bff'
+                : '#a78bff';
+    // Glow makes the skeleton pop against the dimmed B&W video.
+    octx.lineCap = 'round';
+    octx.lineJoin = 'round';
+    octx.shadowColor = color;
+    octx.shadowBlur = 9;
+    octx.strokeStyle = color;
+    octx.lineWidth = 4.5;
+    HAND_CONNECTIONS.forEach(([a, b]) => {
+      octx.beginPath();
+      octx.moveTo(lm[a].x * w, lm[a].y * h);
+      octx.lineTo(lm[b].x * w, lm[b].y * h);
+      octx.stroke();
+    });
+    // Bright joints with a white core for extra prominence.
+    lm.forEach(p => {
+      octx.beginPath();
+      octx.arc(p.x * w, p.y * h, 5, 0, Math.PI * 2);
+      octx.fillStyle = color;
+      octx.fill();
+    });
+    octx.shadowBlur = 0;
+    lm.forEach(p => {
+      octx.beginPath();
+      octx.arc(p.x * w, p.y * h, 2, 0, Math.PI * 2);
+      octx.fillStyle = '#fff';
+      octx.fill();
+    });
+  }
+
+  // ============================================================
+  // RENDER LOOP
+  // ============================================================
+  function tick() {
+    updateCursor();
+    if (isPinching && pinchedPhoto && pinchStartHandSize !== null) {
+      updatePreview(lastHandSize);
+    }
+    requestAnimationFrame(tick);
+  }
+  let lastHandSize = 0.1;
+  requestAnimationFrame(tick);
+
+  // ============================================================
+  // CAMERA COLLAPSE — keep the <video> element alive for MediaPipe
+  // ============================================================
+  const camWrap = document.getElementById('cam');
+  const camToggle = document.getElementById('cam-toggle');
+  const camClose = document.getElementById('cam-close');
+  const camPreview = document.getElementById('cam-preview');
+  const videoHost = document.getElementById('video-host');
+  const videoEl = document.getElementById('video');
+
+  function expandCam() {
+    camWrap.classList.add('expanded');
+    if (videoEl.parentElement !== camPreview) {
+      // Re-insert before #cam-close so #cam-close stays visually on top
+      camPreview.insertBefore(videoEl, camPreview.firstChild);
+    }
+  }
+  function collapseCam() {
+    camWrap.classList.remove('expanded');
+    // Park the <video> off-screen so MediaPipe keeps getting frames
+    videoHost.appendChild(videoEl);
+  }
+  camToggle.addEventListener('click', expandCam);
+  camClose.addEventListener('click', collapseCam);
+  // Start collapsed
+  collapseCam();
+
+  // ============================================================
+  // GESTURE GUIDE — show on first load, dismissible, reopenable
+  // ============================================================
+  const guide = document.getElementById('guide');
+  const guideDismiss = document.getElementById('guide-dismiss');
+  const guideReopen = document.getElementById('guide-reopen');
+  function showGuide() { guide.classList.remove('hidden'); guideReopen.style.display = 'none'; }
+  function hideGuide() { guide.classList.add('hidden'); guideReopen.style.display = 'flex'; }
+  guideDismiss.addEventListener('click', hideGuide);
+  guideReopen.addEventListener('click', showGuide);
+
+  // ============================================================
+  // MEDIAPIPE SETUP
+  // ============================================================
+  const loader = document.getElementById('loader');
+  const loaderText = document.getElementById('loader-text');
+
+  function hideLoader() {
+    loader.classList.add('gone');
+    setTimeout(() => loader.remove(), 800);
+    showGuide();
+  }
+
+  if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+    loaderText.textContent = 'Failed to load MediaPipe. Check internet and reload.';
+    return;
+  }
+
+  const hands = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.5,
+  });
+
+  let sawFirstResult = false;
+  hands.onResults((results) => {
+    if (!sawFirstResult) {
+      sawFirstResult = true;
+      hideLoader();
+      cursorEl.classList.add('visible');
+    }
+    const now = performance.now();
+    const list = results.multiHandLandmarks;
+    if (list && list.length > 0) {
+      const lm = list[0];
+      drawOverlay(lm);
+
+      const rawHand = handCursorPos(lm);
+      const projected = projectToViewport(rawHand);
+      cursorPos.x = cursorFilterX.filter(projected.x, now);
+      cursorPos.y = cursorFilterY.filter(projected.y, now);
+
+      lastHandSize = handSizeOf(lm);
+
+      const rawPose = classifyPose(lm);
+      updatePose(rawPose, now);
+
+      if (currentPose === 'POINTING' && !isPinching) {
+        cursorEl.classList.add('pointing');
+      } else {
+        cursorEl.classList.remove('pointing');
+      }
+
+      // ---- Closed-fist grab-and-drag to scroll the grid ----
+      if (currentPose === 'FIST' && !isPinching) {
+        if (!isFistScrolling) {
+          isFistScrolling = true;
+          fistLastY = cursorPos.y;
+          cursorEl.classList.add('grabbing');
+          if (lastHoveredPhoto) { lastHoveredPhoto.classList.remove('hovered'); lastHoveredPhoto = null; }
+        } else {
+          const dy = cursorPos.y - fistLastY;
+          // Grab-the-surface feel: move hand up → content rises → photos below appear
+          gridWrap.scrollTop -= dy * SCROLL_GAIN * gridWrap.clientHeight;
+          fistLastY = cursorPos.y;
+        }
+      } else if (isFistScrolling) {
+        isFistScrolling = false;
+        cursorEl.classList.remove('grabbing');
+      }
+
+      if (detectTap(lm, now)) {
+        const target = photoUnderCursor();
+        if (target) {
+          toggleSelection(target);
+          fireTapPulse();
+        }
+      }
+
+      const ratio = pinchRatio(lm);
+      // Gate pinch-start on the INSTANT pose (rawPose), not the debounced one —
+      // otherwise the ~90ms pose stickiness lets a closing fist briefly read as
+      // OPEN and trigger an accidental grab/zoom. A real fist curls all fingers,
+      // so rawPose leaves OPEN immediately and only a genuine open-hand pinch fires.
+      if (!isPinching && ratio < PINCH_RATIO && rawPose === 'OPEN' && !isFistScrolling) {
+        const target = photoUnderCursor();
+        if (target) {
+          isPinching = true;
+          cursorEl.classList.add('pinching');
+          cursorEl.classList.remove('pointing');
+          startPreview(target, lastHandSize);
+        }
+      } else if (isPinching && ratio > UNPINCH_RATIO) {
+        isPinching = false;
+        cursorEl.classList.remove('pinching');
+        endPreview();
+      }
+    } else {
+      drawOverlay(null);
+      currentPose = 'NONE';
+      pendingPose = 'NONE';
+      cursorEl.classList.remove('pointing');
+      cursorFilterX.reset();
+      cursorFilterY.reset();
+      if (isFistScrolling) {
+        isFistScrolling = false;
+        cursorEl.classList.remove('grabbing');
+      }
+      if (isPinching) {
+        isPinching = false;
+        cursorEl.classList.remove('pinching');
+        endPreview();
+      }
+    }
+  });
+
+  loaderText.textContent = 'Requesting camera permission…';
+  const camera = new Camera(videoEl, {
+    onFrame: async () => { await hands.send({ image: videoEl }); },
+    width: 640,
+    height: 480,
+  });
+  camera.start().then(() => {
+    loaderText.textContent = 'Warming up the model…';
+  }).catch((err) => {
+    loaderText.innerHTML = 'Camera access is needed to track your hand.<br>'
+      + 'Allow it in your browser, then reload the page.<br>'
+      + '<small style="opacity:0.6">(The camera feed never leaves your device.)</small>';
+    console.error(err);
+  });
+
+})();
+</script>
+
+</body>
+</html>
