@@ -1027,7 +1027,7 @@
   }
 
   function detectTap(lm, now) {
-    if (currentPose !== 'POINTING' || isPinching) { tapHistory.length = 0; return false; }
+    if (currentPose !== 'POINTING' || isPinching || stillPhoto) { tapHistory.length = 0; return false; }
     if (now - lastTapAt < TAP_COOLDOWN_MS) return false;
     const bend = fingerBendMetric(lm);
     tapHistory.push({ ts: now, bend });
@@ -1375,7 +1375,8 @@
       }
 
       // ---- Closed-fist grab-and-drag to scroll the grid ----
-      if (currentPose === 'FIST' && !isPinching) {
+      // (Paused while a photo is enlarged — scrolling would drag it off-centre.)
+      if (currentPose === 'FIST' && !isPinching && !stillPhoto) {
         if (!isFistScrolling) {
           isFistScrolling = true;
           fistLastY = cursorPos.y;
