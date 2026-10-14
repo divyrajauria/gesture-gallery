@@ -489,7 +489,12 @@
     z-index: 400;
     transition: opacity 300ms ease, transform 300ms ease;
   }
-  #guide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  /* visibility (delayed until the fade ends) also takes the hidden card's buttons out of the Tab order */
+  #guide.hidden {
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    visibility: hidden;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms;
+  }
 
   /* ============================================================
      REDUCED MOTION
@@ -719,7 +724,7 @@
     <li><span class="emoji">🤏</span><span><b>Pinch</b> thumb + index to grab a photo, then <b>pull your hand back</b> to enlarge it.</span></li>
     <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
     <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
-    <li><span class="emoji">⌨️</span><span>No camera? <b>Arrow keys</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
+    <li><span class="emoji">⌨️</span><span>No camera? Press <b>Tab</b> or any <b>arrow key</b> to reach the photos, then <b>arrows</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
   <div class="disclaimer">Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
@@ -1267,8 +1272,15 @@
   });
 
   // Escape closes the preview wherever focus has wandered.
+  // Navigation keys pressed outside the grid jump straight into it — no Tab hunting.
+  const JUMP_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && stillPhoto && !grid.contains(e.target)) closeStill();
+    if (grid.contains(e.target)) return;
+    if (e.key === 'Escape' && stillPhoto) closeStill();
+    else if (JUMP_KEYS.includes(e.key) && !e.target.closest('input, textarea, select, [contenteditable]')) {
+      e.preventDefault();
+      focusPhoto(activeIdx);
+    }
   });
 
   // Leaving the grid (Tab away, click elsewhere) closes the preview.
