@@ -2,6 +2,10 @@
 
 Control a photo gallery with hand gestures — no mouse, no touch, no headset. Just your webcam and a browser tab.
 
+![A hand moving in front of a laptop webcam while the cursor glides over a grid of photos and grabs one](docs/demo.gif)
+
+<sub>Recorded on an earlier build with real photos. The live version uses generated tiles so it works offline.</sub>
+
 Move your open palm to glide a cursor over photos, pinch to grab one and pull your hand back to enlarge it, point and tap to select, and make a fist to scroll. Everything runs locally in your browser using your webcam; the camera feed never leaves your device.
 
 > **Live demo:** [divyrajauria.github.io/gesture-photo-gallery](https://divyrajauria.github.io/gesture-photo-gallery/) — open in desktop Chrome or Edge and allow camera access.
