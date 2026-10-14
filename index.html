@@ -457,6 +457,24 @@
     transition: opacity 300ms ease, transform 300ms ease;
   }
   #guide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+  /* ============================================================
+     REDUCED MOTION
+     Decorative motion (spring snap-back, tap ripple, spinner,
+     slides) is removed. Movement driven by your own hand — the
+     cursor, scroll and pull-to-enlarge — stays, because it is the
+     interface, not an effect.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    .photo.tap-flash::after { animation: none; }
+    #loader .spinner { display: none; }
+    #guide.hidden { transform: none; }
+  }
   #guide h3 {
     font-size: 13px; font-weight: 700; margin-bottom: 10px;
     letter-spacing: -0.2px;
