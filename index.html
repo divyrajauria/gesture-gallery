@@ -236,6 +236,39 @@
                 0 0 0 1px rgba(255,255,255,0.12);
     border-radius: 6px;
   }
+  /* Keyboard focus: blue ring, deliberately different from the white hover outline */
+  .photo:focus { outline: none; }
+  .photo:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+  }
+  /* Lift the ring above neighbours — but never below an enlarged preview */
+  .photo:focus-visible:not(.previewing) { z-index: 5; }
+  /* The ring would scale up with an enlarged photo; the preview itself shows focus */
+  .photo.previewing:focus-visible { outline: none; }
+  /* Keyboard / mouse preview: centred and still, eased in rather than hand-driven */
+  .photo.previewing.still {
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  #preview-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  #preview-backdrop.visible { opacity: 1; pointer-events: auto; }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .photo.selected::before {
     content: "";
     position: absolute;
@@ -641,13 +674,20 @@
         </nav>
       </div>
       <div class="grid-wrap">
-        <div class="photo-grid" id="grid"></div>
+        <div class="photo-grid" id="grid" role="listbox" aria-multiselectable="true"
+             aria-label="Photos. Arrow keys to move, Space to select, Enter to enlarge, Escape to close."></div>
       </div>
     </section>
 
   </div>
 
 </div>
+
+<!-- Dims the page behind a keyboard/mouse preview; click it to close -->
+<div id="preview-backdrop" aria-hidden="true"></div>
+
+<!-- Screen-reader announcements (selection count, preview open/close) -->
+<div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
 
 <!-- CURSOR -->
 <div id="cursor"></div>
@@ -679,6 +719,7 @@
     <li><span class="emoji">🤏</span><span><b>Pinch</b> thumb + index to grab a photo, then <b>pull your hand back</b> to enlarge it.</span></li>
     <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
     <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
+    <li><span class="emoji">⌨️</span><span>No camera? <b>Arrow keys</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
   <div class="disclaimer">Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
@@ -795,6 +836,8 @@
   let selectedSet = new Set();
   let isFistScrolling = false;
   let fistLastY = 0;
+  let handPresent = false;      // hand hover only runs while a hand is tracked
+  let stillPhoto = null;        // photo open in the keyboard/mouse preview
 
   // ============================================================
   // BUILD GRID
@@ -805,6 +848,10 @@
     const div = document.createElement('div');
     div.className = 'photo';
     div.dataset.idx = i;
+    div.setAttribute('role', 'option');
+    div.setAttribute('aria-selected', 'false');
+    div.setAttribute('aria-label', `Photo ${i + 1} of ${NUM_PHOTOS}`);
+    div.tabIndex = i === 0 ? 0 : -1;   // roving tabindex: the grid is one Tab stop
     div.style.background = tileBackground(i);
     div.innerHTML = `
       <div class="check-badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.2 L6.8 11.4 L12.6 4.8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke="#fff"/></svg></div>
@@ -818,6 +865,14 @@
   // ============================================================
   const cursorEl = document.getElementById('cursor');
 
+  // Shared by the hand cursor and the mouse — last input wins.
+  function setHovered(el) {
+    if (el === lastHoveredPhoto) return;
+    if (lastHoveredPhoto) lastHoveredPhoto.classList.remove('hovered');
+    if (el) el.classList.add('hovered');
+    lastHoveredPhoto = el;
+  }
+
   function updateCursor() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -826,7 +881,7 @@
     cursorEl.style.left = cx + 'px';
     cursorEl.style.top = cy + 'px';
 
-    if (!isPinching && !isFistScrolling) {
+    if (handPresent && !isPinching && !isFistScrolling && !stillPhoto) {
       let hit = null;
       for (const el of photoEls) {
         const r = el.getBoundingClientRect();
@@ -834,11 +889,7 @@
           hit = el; break;
         }
       }
-      if (hit !== lastHoveredPhoto) {
-        if (lastHoveredPhoto) lastHoveredPhoto.classList.remove('hovered');
-        if (hit) hit.classList.add('hovered');
-        lastHoveredPhoto = hit;
-      }
+      setHovered(hit);
     }
   }
 
@@ -903,15 +954,27 @@
     else         { pageTitle.textContent = n + ' Selected'; }
   }
 
-  function toggleSelection(photo) {
+  const srStatus = document.getElementById('sr-status');
+  function announce(msg) { srStatus.textContent = msg; }
+
+  function setSelected(photo, on, flash) {
     const idx = photo.dataset.idx;
-    if (selectedSet.has(idx)) { selectedSet.delete(idx); photo.classList.remove('selected'); }
-    else                      { selectedSet.add(idx);    photo.classList.add('selected'); }
-    photo.classList.remove('tap-flash');
-    void photo.offsetWidth;
-    photo.classList.add('tap-flash');
-    setTimeout(() => photo.classList.remove('tap-flash'), 420);
+    if (on) { selectedSet.add(idx);    photo.classList.add('selected'); }
+    else    { selectedSet.delete(idx); photo.classList.remove('selected'); }
+    photo.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (flash) {
+      photo.classList.remove('tap-flash');
+      void photo.offsetWidth;
+      photo.classList.add('tap-flash');
+      setTimeout(() => photo.classList.remove('tap-flash'), 420);
+    }
     refreshSelectionHeader();
+    const n = selectedSet.size;
+    announce(n === 0 ? 'No photos selected' : n + (n === 1 ? ' photo' : ' photos') + ' selected');
+  }
+
+  function toggleSelection(photo) {
+    setSelected(photo, !selectedSet.has(photo.dataset.idx), true);
   }
 
   function fireTapPulse() {
@@ -1104,6 +1167,157 @@
   guideReopen.addEventListener('click', showGuide);
 
   // ============================================================
+  // KEYBOARD + MOUSE FALLBACK
+  // Every gesture has an equivalent: arrows/mouse = palm cursor,
+  // Space/click = point-and-tap, Enter/double-click = pinch-and-pull,
+  // Page Up/Down/wheel = fist scroll. Set up before MediaPipe so it
+  // works even if the tracker never loads.
+  // ============================================================
+  const backdrop = document.getElementById('preview-backdrop');
+  let activeIdx = 0;
+
+  function gridColumns() {
+    return getComputedStyle(grid).gridTemplateColumns.split(' ').length || 1;
+  }
+
+  function focusPhoto(i) {
+    i = Math.max(0, Math.min(photoEls.length - 1, i));
+    photoEls[activeIdx].tabIndex = -1;
+    activeIdx = i;
+    const el = photoEls[i];
+    el.tabIndex = 0;
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Centre the photo in the visible grid area, scaled to 80% of its short side.
+  function positionStill() {
+    if (!stillPhoto) return;
+    // Measure the tile's resting spot with transitions off, so a mid-animation
+    // transform doesn't skew the numbers.
+    const prev = stillPhoto.style.transform;
+    stillPhoto.style.transition = 'none';
+    stillPhoto.style.transform = '';
+    const r = stillPhoto.getBoundingClientRect();
+    const w = gridWrap.getBoundingClientRect();
+    stillPhoto.style.transform = prev;
+    void stillPhoto.offsetWidth;
+    stillPhoto.style.transition = '';
+    const scale = Math.min(w.width, w.height) * 0.8 / r.width;
+    const tx = (w.left + w.width / 2) - (r.left + r.width / 2);
+    const ty = (w.top + w.height / 2) - (r.top + r.height / 2);
+    stillPhoto.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+  }
+
+  function openStill(photo) {
+    if (stillPhoto || pinchedPhoto) return;
+    stillPhoto = photo;
+    setHovered(null);
+    photo.classList.add('previewing', 'still');
+    positionStill();
+    backdrop.classList.add('visible');
+    announce(photo.getAttribute('aria-label') + ' enlarged. Press Escape to close.');
+  }
+
+  function closeStill() {
+    if (!stillPhoto) return;
+    const photo = stillPhoto;
+    stillPhoto = null;
+    photo.style.transform = '';
+    backdrop.classList.remove('visible');
+    setTimeout(() => {
+      if (photo !== stillPhoto) photo.classList.remove('previewing', 'still');
+    }, 380);
+    announce('Preview closed');
+  }
+
+  grid.addEventListener('keydown', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo) return;
+    const i = Number(photo.dataset.idx);
+    const cols = gridColumns();
+    if (stillPhoto) {
+      // While enlarged, only Enter/Escape do anything — the rest would move the photo.
+      if (e.key === 'Enter' || e.key === 'Escape') closeStill();
+      if (e.key !== 'Tab') e.preventDefault();
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowRight': focusPhoto(i + 1); break;
+      case 'ArrowLeft':  focusPhoto(i - 1); break;
+      case 'ArrowDown':  focusPhoto(i + cols); break;
+      case 'ArrowUp':    focusPhoto(i - cols); break;
+      case 'PageDown':
+      case 'PageUp': {
+        const rows = Math.max(1, Math.floor(gridWrap.clientHeight / photo.offsetHeight) - 1);
+        focusPhoto(i + (e.key === 'PageDown' ? 1 : -1) * rows * cols);
+        break;
+      }
+      case 'Home': focusPhoto(0); break;
+      case 'End':  focusPhoto(photoEls.length - 1); break;
+      case ' ':    toggleSelection(photo); break;
+      case 'Enter': openStill(photo); break;
+      case 'Escape':
+        if (selectedSet.size === 0) return;
+        for (const el of photoEls) if (el.classList.contains('selected')) setSelected(el, false, false);
+        break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  // Escape closes the preview wherever focus has wandered.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && stillPhoto && !grid.contains(e.target)) closeStill();
+  });
+
+  // Leaving the grid (Tab away, click elsewhere) closes the preview.
+  grid.addEventListener('focusout', (e) => {
+    if (stillPhoto && !grid.contains(e.relatedTarget)) closeStill();
+  });
+  // Keep the roving Tab stop on whichever photo last had focus.
+  grid.addEventListener('focusin', (e) => {
+    const photo = e.target.closest('.photo');
+    if (photo && Number(photo.dataset.idx) !== activeIdx) {
+      photoEls[activeIdx].tabIndex = -1;
+      activeIdx = Number(photo.dataset.idx);
+      photo.tabIndex = 0;
+    }
+  });
+
+  // Mouse: hover outlines, click selects, double-click enlarges.
+  // A double-click's first click toggles selection; we undo it so
+  // double-click only enlarges.
+  let lastClick = null;
+  let closedByClickAt = -Infinity;
+  grid.addEventListener('mouseover', (e) => {
+    if (!stillPhoto) setHovered(e.target.closest('.photo'));
+  });
+  grid.addEventListener('mouseleave', () => { if (!handPresent) setHovered(null); });
+  grid.addEventListener('click', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo) return;
+    if (stillPhoto) { closeStill(); closedByClickAt = performance.now(); return; }
+    if (e.detail > 1) return;
+    lastClick = { photo, wasSelected: selectedSet.has(photo.dataset.idx), at: performance.now() };
+    toggleSelection(photo);
+  });
+  grid.addEventListener('dblclick', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo || performance.now() - closedByClickAt < 500) return;
+    if (lastClick && lastClick.photo === photo && performance.now() - lastClick.at < 600) {
+      setSelected(photo, lastClick.wasSelected, false);
+    }
+    lastClick = null;
+    openStill(photo);
+  });
+  backdrop.addEventListener('click', closeStill);
+
+  // Scrolling under an open preview would drag it off-centre.
+  gridWrap.addEventListener('wheel', (e) => { if (stillPhoto) e.preventDefault(); }, { passive: false });
+  window.addEventListener('resize', positionStill);
+
+  // ============================================================
   // MEDIAPIPE SETUP
   // ============================================================
   const loader = document.getElementById('loader');
@@ -1141,6 +1355,7 @@
     const list = results.multiHandLandmarks;
     if (list && list.length > 0) {
       const lm = list[0];
+      handPresent = true;
       drawOverlay(lm);
 
       const rawHand = handCursorPos(lm);
@@ -1190,7 +1405,7 @@
       // otherwise the ~90ms pose stickiness lets a closing fist briefly read as
       // OPEN and trigger an accidental grab/zoom. A real fist curls all fingers,
       // so rawPose leaves OPEN immediately and only a genuine open-hand pinch fires.
-      if (!isPinching && ratio < PINCH_RATIO && rawPose === 'OPEN' && !isFistScrolling) {
+      if (!isPinching && ratio < PINCH_RATIO && rawPose === 'OPEN' && !isFistScrolling && !stillPhoto) {
         const target = photoUnderCursor();
         if (target) {
           isPinching = true;
@@ -1205,6 +1420,7 @@
       }
     } else {
       drawOverlay(null);
+      if (handPresent) { handPresent = false; setHovered(null); }
       currentPose = 'NONE';
       pendingPose = 'NONE';
       cursorEl.classList.remove('pointing');
