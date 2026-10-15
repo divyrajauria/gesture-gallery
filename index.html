@@ -449,26 +449,63 @@
   }
 
   /* ============================================================
-     LOADER
+     STATUS CARD — hand-tracking progress and camera problems.
+     Sits where the guide does; the gallery stays usable behind it.
      ============================================================ */
-  #loader {
-    position: fixed; inset: 0;
-    background: var(--bg-0);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 16px;
-    z-index: 9999;
-    transition: opacity 0.6s;
+  #status {
+    position: fixed;
+    right: 18px;
+    bottom: 62px;
+    width: 268px;
+    background: rgba(28,28,30,0.92);
+    border: 0.5px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 16px 16px 14px;
+    z-index: 400;
+    transition: opacity 300ms ease, transform 300ms ease;
   }
-  #loader.gone { opacity: 0; pointer-events: none; }
-  #loader .spinner {
-    width: 32px; height: 32px;
-    border: 2px solid rgba(255,255,255,0.1);
+  #status.hidden {
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    visibility: hidden;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms;
+  }
+  .status-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+  #status h3 { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  #status-msg { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+  #status-keys {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 0.5px solid var(--sep);
+    font-size: 12px; color: var(--ink-2); line-height: 1.5;
+  }
+  #status-keys b { color: var(--ink); font-weight: 600; }
+  .status-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .status-actions:empty { display: none; }
+  .status-btn {
+    width: 100%; padding: 8px; border-radius: 9px;
+    font-size: 12px; font-weight: 600;
+    background: rgba(255,255,255,0.10); color: var(--ink);
+  }
+  .status-btn.primary { background: var(--accent); color: #fff; }
+  .status-btn:hover { filter: brightness(1.12); }
+  .status-btn:focus-visible, #cam-toggle:focus-visible, #guide-dismiss:focus-visible, #guide-reopen:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .spinner {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.15);
     border-top-color: var(--ink);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-  #loader-text { color: var(--ink-3); font-size: 13px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Camera button when the camera isn't running: slashed icon */
+  #cam-toggle .icon-off { display: none; }
+  #cam-toggle.off .icon-on { display: none; }
+  #cam-toggle.off .icon-off { display: block; }
+  #cam-toggle.off { color: var(--ink-3); }
 
   /* ============================================================
      GESTURE GUIDE CARD
@@ -510,7 +547,8 @@
       animation-iteration-count: 1 !important;
     }
     .photo.tap-flash::after { animation: none; }
-    #loader .spinner { display: none; }
+    .spinner { display: none; }
+    #status.hidden { transform: none; }
     #guide.hidden { transform: none; }
   }
   #guide h3 {
@@ -700,8 +738,11 @@
 <!-- CAMERA (collapsible) -->
 <div id="cam">
   <button id="cam-toggle" aria-label="Show camera preview" title="Show camera">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/><line x1="2" y1="2" x2="22" y2="22"/>
     </svg>
   </button>
   <div id="cam-preview">
@@ -735,14 +776,21 @@
   </svg>
 </button>
 
-<!-- LOADER -->
-<div id="loader">
-  <div class="spinner"></div>
-  <div id="loader-text">Loading hand tracker…</div>
-</div>
+<!-- STATUS CARD: tracking progress and camera problems (filled in by setStatus) -->
+<section id="status" aria-labelledby="status-title">
+  <div class="status-head">
+    <div class="spinner" aria-hidden="true"></div>
+    <h3 id="status-title">Starting hand tracking…</h3>
+  </div>
+  <p id="status-msg">You can already browse with keyboard and mouse.</p>
+  <p id="status-keys" hidden>
+    <b>Arrow keys</b> move · <b>Space</b> selects · <b>Enter</b> enlarges · <b>Esc</b> closes.
+    Or click to select, double-click to enlarge.
+  </p>
+  <div class="status-actions" id="status-actions"></div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
 <script>
 (function () {
@@ -1155,7 +1203,8 @@
     // Park the <video> off-screen so MediaPipe keeps getting frames
     videoHost.appendChild(videoEl);
   }
-  camToggle.addEventListener('click', expandCam);
+  // While the camera isn't running there's nothing to preview — show why instead.
+  camToggle.addEventListener('click', () => { if (cameraRunning) expandCam(); else showStatusCard(); });
   camClose.addEventListener('click', collapseCam);
   // Start collapsed
   collapseCam();
@@ -1330,19 +1379,74 @@
   window.addEventListener('resize', positionStill);
 
   // ============================================================
-  // MEDIAPIPE SETUP
+  // STATUS CARD — the gallery is usable from the first second;
+  // this card says what hand tracking is doing, and what to do
+  // if the camera can't be used.
   // ============================================================
-  const loader = document.getElementById('loader');
-  const loaderText = document.getElementById('loader-text');
+  const statusCard = document.getElementById('status');
+  const statusTitle = document.getElementById('status-title');
+  const statusMsg = document.getElementById('status-msg');
+  const statusKeys = document.getElementById('status-keys');
+  const statusActions = document.getElementById('status-actions');
+  const statusSpinner = statusCard.querySelector('.spinner');
+  let cameraRunning = false;
+  let statusState = 'loading';
 
-  function hideLoader() {
-    loader.classList.add('gone');
-    setTimeout(() => loader.remove(), 800);
-    showGuide();
+  const STATUS = {
+    loading:    { title: 'Starting hand tracking…', msg: 'You can already browse with keyboard and mouse.', busy: true },
+    permission: { title: 'Allow camera access', msg: 'Allow it to control the gallery with your hand. The feed never leaves your device.', busy: true },
+    denied:     { title: 'Camera is off', msg: 'You can still browse with keyboard and mouse.', keys: true, retry: 'Try camera again' },
+    blocked:    { title: 'Camera is blocked', msg: 'Your browser is blocking the camera. Click the camera icon in the address bar to allow it, then try again.', keys: true, retry: 'Try again' },
+    nocamera:   { title: 'No camera found', msg: 'Browse with keyboard and mouse.', keys: true },
+    busyCam:    { title: 'Camera in use', msg: 'Your camera is in use by another app. Close it and try again.', keys: true, retry: 'Try again' },
+    error:      { title: 'Camera couldn’t start', msg: 'You can still browse with keyboard and mouse.', keys: true, retry: 'Try again' },
+    offline:    { title: 'Hand tracking couldn’t load', msg: 'Check your connection. You can still browse with keyboard and mouse.', keys: true, retry: 'Retry', reload: true },
+  };
+
+  function button(label, primary, onClick) {
+    const b = document.createElement('button');
+    b.className = 'status-btn' + (primary ? ' primary' : '');
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    return b;
   }
 
-  if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
-    loaderText.textContent = 'Failed to load MediaPipe. Check internet and reload.';
+  // null = tracking is running, card goes away.
+  function setStatus(state) {
+    statusState = state;
+    if (!state) { hideStatusCard(); return; }
+    const s = STATUS[state];
+    statusTitle.textContent = s.title;
+    statusMsg.textContent = s.msg;
+    statusSpinner.style.display = s.busy ? '' : 'none';
+    statusKeys.hidden = !s.keys;
+    statusActions.replaceChildren();
+    if (s.retry) statusActions.append(button(s.retry, true, s.reload ? () => location.reload() : () => startCamera(true)));
+    if (!s.busy) statusActions.append(button('Use keyboard & mouse', !s.retry, useKeyboardMouse));
+    camToggle.classList.toggle('off', !s.busy);
+    camToggle.setAttribute('aria-label', s.busy ? 'Hand tracking is starting' : 'Camera off — show camera status');
+    camToggle.title = s.busy ? 'Starting camera' : 'Camera off';
+    showStatusCard();
+    announce(s.title + '. ' + s.msg);
+  }
+  function showStatusCard() {
+    if (!statusState) return;
+    hideGuide();
+    guideReopen.style.display = 'none';
+    statusCard.classList.remove('hidden');
+  }
+  function hideStatusCard() { statusCard.classList.add('hidden'); }
+  function useKeyboardMouse() {
+    hideStatusCard();
+    guideReopen.style.display = 'flex';
+    focusPhoto(activeIdx);
+  }
+
+  // ============================================================
+  // MEDIAPIPE SETUP
+  // ============================================================
+  if (typeof Hands === 'undefined') {
+    setStatus('offline');
     return;
   }
 
@@ -1360,7 +1464,11 @@
   hands.onResults((results) => {
     if (!sawFirstResult) {
       sawFirstResult = true;
-      hideLoader();
+      setStatus(null);
+      camToggle.classList.remove('off');
+      camToggle.setAttribute('aria-label', 'Show camera preview');
+      camToggle.title = 'Show camera';
+      showGuide();
       cursorEl.classList.add('visible');
     }
     const now = performance.now();
@@ -1451,20 +1559,72 @@
     }
   });
 
-  loaderText.textContent = 'Requesting camera permission…';
-  const camera = new Camera(videoEl, {
-    onFrame: async () => { await hands.send({ image: videoEl }); },
-    width: 640,
-    height: 480,
-  });
-  camera.start().then(() => {
-    loaderText.textContent = 'Warming up the model…';
-  }).catch((err) => {
-    loaderText.innerHTML = 'Camera access is needed to track your hand.<br>'
-      + 'Allow it in your browser, then reload the page.<br>'
-      + '<small style="opacity:0.6">(The camera feed never leaves your device.)</small>';
-    console.error(err);
-  });
+  // ============================================================
+  // CAMERA — asked for directly (MediaPipe's camera helper pops a
+  // raw alert() on failure, so we don't use it).
+  // ============================================================
+  let permState = 'prompt';
+  let trackerFailed = false;
+
+  async function frameLoop() {
+    if (trackerFailed) return;
+    if (videoEl.readyState >= 2) {
+      try { await hands.send({ image: videoEl }); }
+      catch (err) {
+        // The model files come from the CDN on first send — if that fails, say so once.
+        console.error(err);
+        if (!sawFirstResult) { trackerFailed = true; setStatus('offline'); return; }
+      }
+    }
+    requestAnimationFrame(frameLoop);
+  }
+
+  let cameraStarting = false;
+  async function startCamera(isRetry) {
+    if (cameraRunning || cameraStarting) return;
+    cameraStarting = true;
+    setStatus(permState === 'granted' ? 'loading' : 'permission');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw Object.assign(new Error('getUserMedia unavailable'), { name: 'NotSupportedError' });
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 640, height: 480 },
+      });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+      cameraRunning = true;
+      if (!sawFirstResult) setStatus('loading');
+      requestAnimationFrame(frameLoop);
+    } catch (err) {
+      console.error(err);
+      const name = err && err.name;
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        // A refusal on retry (or one the browser remembers) won't prompt again.
+        setStatus(isRetry || permState === 'denied' ? 'blocked' : 'denied');
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        setStatus('nocamera');
+      } else if (name === 'NotReadableError' || name === 'AbortError') {
+        setStatus('busyCam');
+      } else {
+        setStatus('error');
+      }
+    } finally {
+      cameraStarting = false;
+    }
+  }
+
+  // Knowing the permission up front picks the right first message, and lets us
+  // start straight away if the person allows the camera from the address bar.
+  const permQuery = navigator.permissions && navigator.permissions.query
+    ? navigator.permissions.query({ name: 'camera' }) : Promise.reject();
+  permQuery.then((ps) => {
+    permState = ps.state;
+    ps.onchange = () => {
+      permState = ps.state;
+      if (ps.state === 'granted' && !cameraRunning) startCamera(true);
+    };
+  }).catch(() => {}).finally(() => startCamera(false));
 
 })();
 </script>

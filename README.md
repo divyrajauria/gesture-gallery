@@ -20,6 +20,19 @@ Move your open palm to glide a cursor over photos, pinch to grab one and pull yo
 | 👆 Point (index out) | Dip the fingertip briefly | Select / deselect the photo under the cursor (blue checkmark) |
 | ✊ Fist | Move your hand up / down | Grab-and-drag scroll through the grid |
 
+## No camera? Keyboard and mouse
+
+Every gesture has a keyboard and mouse equivalent, and the gallery is usable from the first second — before hand tracking has loaded, or if camera access is denied. A small card in the corner says what's happening (loading, camera blocked, no camera found, camera in use by another app) and how to fix it.
+
+| Gesture | Keyboard | Mouse |
+|---------|----------|-------|
+| Move open palm | Arrow keys (Tab or any arrow key to start) | Hover |
+| Point + tap to select | Space | Click |
+| Pinch + pull to enlarge | Enter (Esc closes) | Double-click (click outside closes) |
+| Fist scroll | Page Up / Page Down, Home / End | Scroll wheel |
+
+Esc with nothing enlarged clears the selection. Selection changes and previews are announced to screen readers, and `prefers-reduced-motion` removes decorative animation.
+
 ## Run it locally
 
 This is a single, self-contained HTML file — no build step, no dependencies to install.
@@ -42,7 +55,7 @@ Key tuning constants live near the top of the `<script>` in `index.html` (sensit
 
 ## Requirements
 
-- A webcam
+- A webcam for hand gestures (optional — keyboard and mouse work without one)
 - Desktop Chrome or Edge (other Chromium browsers generally work; mobile and Safari are not officially supported)
 
 ## License
