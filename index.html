@@ -175,6 +175,50 @@
     font-weight: 700;
     letter-spacing: -0.5px;
   }
+  /* min-height reserves room for the action bar, so the grid doesn't jump when it appears */
+  .title-group { display: flex; align-items: center; gap: 14px; min-height: 36px; }
+  /* Selection actions — shown next to "N Selected" */
+  #sel-bar { display: flex; gap: 6px; }
+  #sel-bar[hidden] { display: none; }
+  /* 36px tall: big enough to hit with the hand cursor, not just a mouse */
+  .sel-btn {
+    min-height: 36px;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,0.10);
+    color: var(--ink);
+  }
+  .sel-btn.danger { color: #ff6961; }
+  .sel-btn:hover { background: rgba(255,255,255,0.16); }
+  .sel-btn:focus-visible, #toast-undo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Button under the hand cursor gets the same lift as mouse hover */
+  .hand-hover { box-shadow: 0 0 0 2px rgba(255,255,255,0.85); filter: brightness(1.15); }
+  /* Undo toast after Remove */
+  #toast {
+    position: fixed;
+    left: 50%; bottom: 24px;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 8px 8px 16px;
+    border-radius: 12px;
+    background: rgba(44,44,46,0.96);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    font-size: 13px;
+    z-index: 450;
+    transition: opacity 200ms ease;
+  }
+  #toast.hidden {
+    opacity: 0; pointer-events: none; visibility: hidden;
+    transition: opacity 200ms ease, visibility 0s linear 200ms;
+  }
+  #toast-undo {
+    min-height: 36px;
+    padding: 8px 16px; border-radius: 9px;
+    color: var(--accent); font-weight: 600;
+  }
+  #toast-undo:hover { background: rgba(255,255,255,0.08); }
   .content-tabs {
     display: flex;
     gap: 4px;
@@ -236,6 +280,51 @@
                 0 0 0 1px rgba(255,255,255,0.12);
     border-radius: 6px;
   }
+  /* Keyboard focus: blue ring, deliberately different from the white hover outline */
+  .photo:focus { outline: none; }
+  .photo:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+  }
+  /* Lift the ring above neighbours — but never below an enlarged preview */
+  .photo:focus-visible:not(.previewing) { z-index: 5; }
+  /* The ring would scale up with an enlarged photo; the preview itself shows focus */
+  .photo.previewing:focus-visible { outline: none; }
+  /* Keyboard / mouse preview: centred and still, eased in rather than hand-driven */
+  .photo.previewing.still {
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  #preview-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  #preview-backdrop.visible { opacity: 1; pointer-events: auto; }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* Photo fades in over its gradient placeholder once loaded */
+  .tile-img {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    pointer-events: none;
+    user-select: none;
+  }
+  .tile-img.loaded { opacity: 1; }
   .photo.selected::before {
     content: "";
     position: absolute;
@@ -416,26 +505,63 @@
   }
 
   /* ============================================================
-     LOADER
+     STATUS CARD — hand-tracking progress and camera problems.
+     Sits where the guide does; the gallery stays usable behind it.
      ============================================================ */
-  #loader {
-    position: fixed; inset: 0;
-    background: var(--bg-0);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 16px;
-    z-index: 9999;
-    transition: opacity 0.6s;
+  #status {
+    position: fixed;
+    right: 18px;
+    bottom: 62px;
+    width: 268px;
+    background: rgba(28,28,30,0.92);
+    border: 0.5px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 16px 16px 14px;
+    z-index: 400;
+    transition: opacity 300ms ease, transform 300ms ease;
   }
-  #loader.gone { opacity: 0; pointer-events: none; }
-  #loader .spinner {
-    width: 32px; height: 32px;
-    border: 2px solid rgba(255,255,255,0.1);
+  #status.hidden {
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    visibility: hidden;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms;
+  }
+  .status-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+  #status h3 { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  #status-msg { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+  #status-keys {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 0.5px solid var(--sep);
+    font-size: 12px; color: var(--ink-2); line-height: 1.5;
+  }
+  #status-keys b { color: var(--ink); font-weight: 600; }
+  .status-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .status-actions:empty { display: none; }
+  .status-btn {
+    width: 100%; padding: 8px; border-radius: 9px;
+    font-size: 12px; font-weight: 600;
+    background: rgba(255,255,255,0.10); color: var(--ink);
+  }
+  .status-btn.primary { background: var(--accent); color: #fff; }
+  .status-btn:hover { filter: brightness(1.12); }
+  .status-btn:focus-visible, #cam-toggle:focus-visible, #guide-dismiss:focus-visible, #guide-reopen:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .spinner {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.15);
     border-top-color: var(--ink);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-  #loader-text { color: var(--ink-3); font-size: 13px; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Camera button when the camera isn't running: slashed icon */
+  #cam-toggle .icon-off { display: none; }
+  #cam-toggle.off .icon-on { display: none; }
+  #cam-toggle.off .icon-off { display: block; }
+  #cam-toggle.off { color: var(--ink-3); }
 
   /* ============================================================
      GESTURE GUIDE CARD
@@ -456,7 +582,12 @@
     z-index: 400;
     transition: opacity 300ms ease, transform 300ms ease;
   }
-  #guide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  /* visibility (delayed until the fade ends) also takes the hidden card's buttons out of the Tab order */
+  #guide.hidden {
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    visibility: hidden;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms;
+  }
 
   /* ============================================================
      REDUCED MOTION
@@ -472,7 +603,8 @@
       animation-iteration-count: 1 !important;
     }
     .photo.tap-flash::after { animation: none; }
-    #loader .spinner { display: none; }
+    .spinner { display: none; }
+    #status.hidden { transform: none; }
     #guide.hidden { transform: none; }
   }
   #guide h3 {
@@ -488,6 +620,7 @@
     border-top: 0.5px solid var(--sep);
     font-size: 10px; color: var(--ink-3); line-height: 1.4;
   }
+  #guide .disclaimer a { text-decoration: underline; }
   #guide-dismiss {
     margin-top: 12px; width: 100%;
     padding: 8px; border-radius: 9px;
@@ -633,7 +766,13 @@
     <!-- CONTENT -->
     <section class="content">
       <div class="content-header">
-        <h1 class="content-title" id="page-title">Library</h1>
+        <div class="title-group">
+          <h1 class="content-title" id="page-title">Library</h1>
+          <div id="sel-bar" role="group" aria-label="Selection actions" hidden>
+            <button class="sel-btn danger" id="sel-remove">Remove</button>
+            <button class="sel-btn" id="sel-clear">Clear</button>
+          </div>
+        </div>
         <nav class="content-tabs">
           <a class="content-tab">Years</a>
           <a class="content-tab">Months</a>
@@ -641,12 +780,25 @@
         </nav>
       </div>
       <div class="grid-wrap">
-        <div class="photo-grid" id="grid"></div>
+        <div class="photo-grid" id="grid" role="listbox" aria-multiselectable="true"
+             aria-label="Photos. Arrow keys to move, Space to select, Enter to enlarge, Escape to close."></div>
       </div>
     </section>
 
   </div>
 
+</div>
+
+<!-- Dims the page behind a keyboard/mouse preview; click it to close -->
+<div id="preview-backdrop" aria-hidden="true"></div>
+
+<!-- Screen-reader announcements (selection count, preview open/close) -->
+<div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+
+<!-- Undo after Remove -->
+<div id="toast" class="hidden" role="group" aria-label="Removed photos">
+  <span id="toast-msg"></span>
+  <button id="toast-undo">Undo</button>
 </div>
 
 <!-- CURSOR -->
@@ -655,8 +807,11 @@
 <!-- CAMERA (collapsible) -->
 <div id="cam">
   <button id="cam-toggle" aria-label="Show camera preview" title="Show camera">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/><line x1="2" y1="2" x2="22" y2="22"/>
     </svg>
   </button>
   <div id="cam-preview">
@@ -679,9 +834,11 @@
     <li><span class="emoji">🤏</span><span><b>Pinch</b> thumb + index to grab a photo, then <b>pull your hand back</b> to enlarge it.</span></li>
     <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
     <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
+    <li><span class="emoji">⌨️</span><span>No camera? Press <b>Tab</b> or any <b>arrow key</b> to reach the photos, then <b>arrows</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
+    <li><span class="emoji">🗑️</span><span>With photos selected, tap <b>Remove</b> (or press <b>Delete</b>). <b>Undo</b> brings them back.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
-  <div class="disclaimer">Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
+  <div class="disclaimer">Photos from <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> via <a href="https://picsum.photos" target="_blank" rel="noopener">Lorem Picsum</a>. Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
 </div>
 <button id="guide-reopen" title="Show gesture guide" aria-label="Show gesture guide">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -689,14 +846,21 @@
   </svg>
 </button>
 
-<!-- LOADER -->
-<div id="loader">
-  <div class="spinner"></div>
-  <div id="loader-text">Loading hand tracker…</div>
-</div>
+<!-- STATUS CARD: tracking progress and camera problems (filled in by setStatus) -->
+<section id="status" aria-labelledby="status-title">
+  <div class="status-head">
+    <div class="spinner" aria-hidden="true"></div>
+    <h3 id="status-title">Starting hand tracking…</h3>
+  </div>
+  <p id="status-msg">You can already browse with keyboard and mouse.</p>
+  <p id="status-keys" hidden>
+    <b>Arrow keys</b> move · <b>Space</b> selects · <b>Enter</b> enlarges · <b>Esc</b> closes ·
+    <b>Delete</b> removes selected. Or click to select, double-click to enlarge.
+  </p>
+  <div class="status-actions" id="status-actions"></div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
 <script>
 (function () {
@@ -724,10 +888,15 @@
   const VIEWPORT_PAD = 0.08;
 
   // ============================================================
-  // SELF-CONTAINED PHOTO TILES
-  // No external images — each tile is a deterministic gradient generated
-  // from its index, so the gallery works offline and has zero dependencies.
+  // PHOTO TILES
+  // Free-licence photos (Unsplash, served by Lorem Picsum). Each tile asks
+  // for a fixed seed, so the grid is the same on every visit. A gradient
+  // generated from the index sits underneath as a placeholder while a photo
+  // loads, and stays as the tile if the photo can't load (offline, blocked).
   // ============================================================
+  const PHOTO_URL = (i, px) => `https://picsum.photos/seed/gesture-gallery-${i}/${px}/${px}`;
+  const PHOTO_PX = 400;        // grid tiles
+  const PHOTO_PX_LARGE = 1200; // swapped in when a photo is enlarged
   // Deterministic pseudo-random in [0,1) from a seed — same tiles every reload,
   // but hues are scattered so neighbours don't share a color family.
   function rand(seed) {
@@ -795,6 +964,8 @@
   let selectedSet = new Set();
   let isFistScrolling = false;
   let fistLastY = 0;
+  let handPresent = false;      // hand hover only runs while a hand is tracked
+  let stillPhoto = null;        // photo open in the keyboard/mouse preview
 
   // ============================================================
   // BUILD GRID
@@ -805,18 +976,45 @@
     const div = document.createElement('div');
     div.className = 'photo';
     div.dataset.idx = i;
+    div.setAttribute('role', 'option');
+    div.setAttribute('aria-selected', 'false');
+    div.setAttribute('aria-label', `Photo ${i + 1} of ${NUM_PHOTOS}`);
+    div.tabIndex = i === 0 ? 0 : -1;   // roving tabindex: the grid is one Tab stop
     div.style.background = tileBackground(i);
     div.innerHTML = `
+      <img class="tile-img" alt="" draggable="false" loading="lazy" decoding="async" src="${PHOTO_URL(i, PHOTO_PX)}">
       <div class="check-badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.2 L6.8 11.4 L12.6 4.8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke="#fff"/></svg></div>
     `;
+    const img = div.querySelector('img');
+    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+    img.addEventListener('error', () => img.remove(), { once: true });  // keep the gradient
     grid.appendChild(div);
   }
   const photoEls = Array.from(document.querySelectorAll('.photo'));
+
+  // Enlarged photos would look soft at grid resolution — fetch a bigger copy.
+  // The grid-size image stays on screen until the big one has arrived.
+  function upgradeToLarge(photo) {
+    const img = photo.querySelector('.tile-img');
+    if (!img || img.dataset.large) return;
+    img.dataset.large = '1';
+    const big = new Image();
+    big.onload = () => { img.src = big.src; };
+    big.src = PHOTO_URL(photo.dataset.idx, PHOTO_PX_LARGE);
+  }
 
   // ============================================================
   // CURSOR + HOVER
   // ============================================================
   const cursorEl = document.getElementById('cursor');
+
+  // Shared by the hand cursor and the mouse — last input wins.
+  function setHovered(el) {
+    if (el === lastHoveredPhoto) return;
+    if (lastHoveredPhoto) lastHoveredPhoto.classList.remove('hovered');
+    if (el) el.classList.add('hovered');
+    lastHoveredPhoto = el;
+  }
 
   function updateCursor() {
     const vw = window.innerWidth;
@@ -826,19 +1024,24 @@
     cursorEl.style.left = cx + 'px';
     cursorEl.style.top = cy + 'px';
 
-    if (!isPinching && !isFistScrolling) {
+    // Buttons under the hand cursor light up, so a tap target is obvious.
+    const btn = handPresent && !stillPhoto ? buttonUnderCursor() : null;
+    if (btn !== handHoverBtn) {
+      if (handHoverBtn) handHoverBtn.classList.remove('hand-hover');
+      if (btn) btn.classList.add('hand-hover');
+      handHoverBtn = btn;
+    }
+
+    if (handPresent && !isPinching && !isFistScrolling && !stillPhoto) {
       let hit = null;
-      for (const el of photoEls) {
+      if (!btn) for (const el of photoEls) {
+        if (el.hidden) continue;
         const r = el.getBoundingClientRect();
         if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
           hit = el; break;
         }
       }
-      if (hit !== lastHoveredPhoto) {
-        if (lastHoveredPhoto) lastHoveredPhoto.classList.remove('hovered');
-        if (hit) hit.classList.add('hovered');
-        lastHoveredPhoto = hit;
-      }
+      setHovered(hit);
     }
   }
 
@@ -851,6 +1054,7 @@
     pullAmount = 0;
     if (lastHoveredPhoto) { lastHoveredPhoto.classList.remove('hovered'); lastHoveredPhoto = null; }
     photo.classList.add('previewing');
+    upgradeToLarge(photo);
   }
 
   function updatePreview(handSize) {
@@ -886,32 +1090,54 @@
   // SELECTION (index-finger tap)
   // ============================================================
   const pageTitle = document.getElementById('page-title');
+  const selBar = document.getElementById('sel-bar');
 
   function photoUnderCursor() {
     const cx = cursorPos.x * window.innerWidth;
     const cy = cursorPos.y * window.innerHeight;
     for (const el of photoEls) {
+      if (el.hidden) continue;
       const r = el.getBoundingClientRect();
       if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return el;
     }
     return null;
   }
 
+  // Any button (or link) under the hand cursor — lets point-and-tap press it.
+  let handHoverBtn = null;
+  function buttonUnderCursor() {
+    const hit = document.elementFromPoint(cursorPos.x * window.innerWidth, cursorPos.y * window.innerHeight);
+    return hit ? hit.closest('button, a[href]') : null;
+  }
+
   function refreshSelectionHeader() {
     const n = selectedSet.size;
     if (n === 0) { pageTitle.textContent = 'Library'; }
     else         { pageTitle.textContent = n + ' Selected'; }
+    selBar.hidden = n === 0;
+  }
+
+  const srStatus = document.getElementById('sr-status');
+  function announce(msg) { srStatus.textContent = msg; }
+
+  function setSelected(photo, on, flash) {
+    const idx = photo.dataset.idx;
+    if (on) { selectedSet.add(idx);    photo.classList.add('selected'); }
+    else    { selectedSet.delete(idx); photo.classList.remove('selected'); }
+    photo.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (flash) {
+      photo.classList.remove('tap-flash');
+      void photo.offsetWidth;
+      photo.classList.add('tap-flash');
+      setTimeout(() => photo.classList.remove('tap-flash'), 420);
+    }
+    refreshSelectionHeader();
+    const n = selectedSet.size;
+    announce(n === 0 ? 'No photos selected' : n + (n === 1 ? ' photo' : ' photos') + ' selected');
   }
 
   function toggleSelection(photo) {
-    const idx = photo.dataset.idx;
-    if (selectedSet.has(idx)) { selectedSet.delete(idx); photo.classList.remove('selected'); }
-    else                      { selectedSet.add(idx);    photo.classList.add('selected'); }
-    photo.classList.remove('tap-flash');
-    void photo.offsetWidth;
-    photo.classList.add('tap-flash');
-    setTimeout(() => photo.classList.remove('tap-flash'), 420);
-    refreshSelectionHeader();
+    setSelected(photo, !selectedSet.has(photo.dataset.idx), true);
   }
 
   function fireTapPulse() {
@@ -964,7 +1190,7 @@
   }
 
   function detectTap(lm, now) {
-    if (currentPose !== 'POINTING' || isPinching) { tapHistory.length = 0; return false; }
+    if (currentPose !== 'POINTING' || isPinching || stillPhoto) { tapHistory.length = 0; return false; }
     if (now - lastTapAt < TAP_COOLDOWN_MS) return false;
     const bend = fingerBendMetric(lm);
     tapHistory.push({ ts: now, bend });
@@ -1087,7 +1313,8 @@
     // Park the <video> off-screen so MediaPipe keeps getting frames
     videoHost.appendChild(videoEl);
   }
-  camToggle.addEventListener('click', expandCam);
+  // While the camera isn't running there's nothing to preview — show why instead.
+  camToggle.addEventListener('click', () => { if (cameraRunning) expandCam(); else showStatusCard(); });
   camClose.addEventListener('click', collapseCam);
   // Start collapsed
   collapseCam();
@@ -1104,19 +1331,341 @@
   guideReopen.addEventListener('click', showGuide);
 
   // ============================================================
-  // MEDIAPIPE SETUP
+  // SELECTION ACTIONS — Remove (with Undo) and Clear.
+  // Nothing is deleted: removed photos are hidden and come back on
+  // Undo or reload.
   // ============================================================
-  const loader = document.getElementById('loader');
-  const loaderText = document.getElementById('loader-text');
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  let lastRemoved = null;
+  let toastTimer = null;
 
-  function hideLoader() {
-    loader.classList.add('gone');
-    setTimeout(() => loader.remove(), 800);
-    showGuide();
+  function selectedPhotos() { return photoEls.filter(el => selectedSet.has(el.dataset.idx)); }
+  // Where focus was, so actions can hand it back to the photos instead of dropping it.
+  function focusInGallery() {
+    const a = document.activeElement;
+    return grid.contains(a) || selBar.contains(a) || toast.contains(a);
   }
 
-  if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
-    loaderText.textContent = 'Failed to load MediaPipe. Check internet and reload.';
+  function relabelPhotos() {
+    const vis = visiblePhotos();
+    vis.forEach((el, k) => el.setAttribute('aria-label', `Photo ${k + 1} of ${vis.length}`));
+  }
+
+  function clearSelection() {
+    const refocus = focusInGallery();
+    for (const el of selectedPhotos()) setSelected(el, false, false);
+    if (refocus) focusPhoto();
+  }
+
+  function removeSelected() {
+    const removed = selectedPhotos();
+    if (!removed.length || stillPhoto) return;
+    const refocus = focusInGallery();
+    // Next photo to land on: first survivor after the active one, else the last survivor.
+    const anchor = Number((activePhoto || removed[0]).dataset.idx);
+    const survivors = photoEls.filter(el => !el.hidden && !selectedSet.has(el.dataset.idx));
+    const next = survivors.find(el => Number(el.dataset.idx) >= anchor) || survivors[survivors.length - 1] || null;
+    for (const el of removed) {
+      setSelected(el, false, false);
+      el.hidden = true;
+      if (el === lastHoveredPhoto) setHovered(null);
+    }
+    setTabStop(next);
+    if (refocus && next) focusPhoto(visiblePhotos().indexOf(next));
+    relabelPhotos();
+    lastRemoved = removed;
+    const n = removed.length;
+    toastMsg.textContent = n + (n === 1 ? ' photo removed' : ' photos removed');
+    showToast();
+    announce(toastMsg.textContent + '. Press Undo, or Control Z, to bring them back.');
+  }
+
+  function undoRemove() {
+    if (!lastRemoved) return;
+    const refocus = focusInGallery();
+    for (const el of lastRemoved) { el.hidden = false; setSelected(el, true, false); }
+    relabelPhotos();
+    const first = lastRemoved[0];
+    lastRemoved = null;
+    hideToast();
+    if (refocus) focusPhoto(visiblePhotos().indexOf(first));
+    announce('Photos restored');
+  }
+
+  function showToast() {
+    toast.classList.remove('hidden');
+    restartToastTimer();
+  }
+  function hideToast() { toast.classList.add('hidden'); clearTimeout(toastTimer); }
+  function restartToastTimer() {
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+  // Don't vanish while someone is reaching for Undo.
+  toast.addEventListener('mouseenter', () => clearTimeout(toastTimer));
+  toast.addEventListener('focusin', () => clearTimeout(toastTimer));
+  toast.addEventListener('mouseleave', restartToastTimer);
+  toast.addEventListener('focusout', restartToastTimer);
+
+  document.getElementById('toast-undo').addEventListener('click', undoRemove);
+  document.getElementById('sel-remove').addEventListener('click', removeSelected);
+  document.getElementById('sel-clear').addEventListener('click', clearSelection);
+
+  // ============================================================
+  // KEYBOARD + MOUSE FALLBACK
+  // Every gesture has an equivalent: arrows/mouse = palm cursor,
+  // Space/click = point-and-tap, Enter/double-click = pinch-and-pull,
+  // Page Up/Down/wheel = fist scroll. Set up before MediaPipe so it
+  // works even if the tracker never loads.
+  // ============================================================
+  const backdrop = document.getElementById('preview-backdrop');
+  let activePhoto = photoEls[0];   // holds the grid's single Tab stop
+
+  function gridColumns() {
+    return getComputedStyle(grid).gridTemplateColumns.split(' ').length || 1;
+  }
+
+  // Photos still in the grid (Remove hides the others), in visual order.
+  function visiblePhotos() { return photoEls.filter(el => !el.hidden); }
+
+  function setTabStop(el) {
+    if (el === activePhoto) return;
+    if (activePhoto) activePhoto.tabIndex = -1;
+    activePhoto = el;
+    if (el) el.tabIndex = 0;
+  }
+
+  // Focus the i-th visible photo (clamped). With no argument, return to the
+  // last-focused photo, or the first one if that has been removed.
+  function focusPhoto(i) {
+    const vis = visiblePhotos();
+    if (!vis.length) return;
+    const el = i === undefined
+      ? (activePhoto && !activePhoto.hidden ? activePhoto : vis[0])
+      : vis[Math.max(0, Math.min(vis.length - 1, i))];
+    setTabStop(el);
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Centre the photo in the visible grid area, scaled to 80% of its short side.
+  function positionStill() {
+    if (!stillPhoto) return;
+    // Measure the tile's resting spot with transitions off, so a mid-animation
+    // transform doesn't skew the numbers.
+    const prev = stillPhoto.style.transform;
+    stillPhoto.style.transition = 'none';
+    stillPhoto.style.transform = '';
+    const r = stillPhoto.getBoundingClientRect();
+    const w = gridWrap.getBoundingClientRect();
+    stillPhoto.style.transform = prev;
+    void stillPhoto.offsetWidth;
+    stillPhoto.style.transition = '';
+    const scale = Math.min(w.width, w.height) * 0.8 / r.width;
+    const tx = (w.left + w.width / 2) - (r.left + r.width / 2);
+    const ty = (w.top + w.height / 2) - (r.top + r.height / 2);
+    stillPhoto.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+  }
+
+  function openStill(photo) {
+    if (stillPhoto || pinchedPhoto) return;
+    stillPhoto = photo;
+    setHovered(null);
+    photo.classList.add('previewing', 'still');
+    upgradeToLarge(photo);
+    positionStill();
+    backdrop.classList.add('visible');
+    announce(photo.getAttribute('aria-label') + ' enlarged. Press Escape to close.');
+  }
+
+  function closeStill() {
+    if (!stillPhoto) return;
+    const photo = stillPhoto;
+    stillPhoto = null;
+    photo.style.transform = '';
+    backdrop.classList.remove('visible');
+    setTimeout(() => {
+      if (photo !== stillPhoto) photo.classList.remove('previewing', 'still');
+    }, 380);
+    announce('Preview closed');
+  }
+
+  grid.addEventListener('keydown', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo) return;
+    const vis = visiblePhotos();
+    const i = vis.indexOf(photo);
+    const cols = gridColumns();
+    if (stillPhoto) {
+      // While enlarged, only Enter/Escape do anything — the rest would move the photo.
+      if (e.key === 'Enter' || e.key === 'Escape') closeStill();
+      if (e.key !== 'Tab') e.preventDefault();
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowRight': focusPhoto(i + 1); break;
+      case 'ArrowLeft':  focusPhoto(i - 1); break;
+      case 'ArrowDown':  focusPhoto(i + cols); break;
+      case 'ArrowUp':    focusPhoto(i - cols); break;
+      case 'PageDown':
+      case 'PageUp': {
+        const rows = Math.max(1, Math.floor(gridWrap.clientHeight / photo.offsetHeight) - 1);
+        focusPhoto(i + (e.key === 'PageDown' ? 1 : -1) * rows * cols);
+        break;
+      }
+      case 'Home': focusPhoto(0); break;
+      case 'End':  focusPhoto(vis.length - 1); break;
+      case ' ':    toggleSelection(photo); break;
+      case 'Enter': openStill(photo); break;
+      case 'Escape':
+        if (selectedSet.size === 0) return;
+        clearSelection();
+        break;
+      case 'Delete':
+      case 'Backspace':
+        if (selectedSet.size === 0) return;
+        removeSelected();
+        break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  // Escape closes the preview wherever focus has wandered.
+  // Navigation keys pressed outside the grid jump straight into it — no Tab hunting.
+  // Delete / Ctrl-or-Cmd+Z work from anywhere that isn't a text field.
+  const JUMP_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
+  document.addEventListener('keydown', (e) => {
+    const typing = e.target.closest('input, textarea, select, [contenteditable]');
+    if (!typing && !stillPhoto && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && lastRemoved) {
+      e.preventDefault();
+      undoRemove();
+      return;
+    }
+    if (grid.contains(e.target)) return;
+    if (e.key === 'Escape' && stillPhoto) closeStill();
+    else if (typing) return;
+    else if (JUMP_KEYS.includes(e.key)) {
+      e.preventDefault();
+      focusPhoto();
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSet.size && !stillPhoto) {
+      e.preventDefault();
+      removeSelected();
+    }
+  });
+
+  // Leaving the grid (Tab away, click elsewhere) closes the preview.
+  grid.addEventListener('focusout', (e) => {
+    if (stillPhoto && !grid.contains(e.relatedTarget)) closeStill();
+  });
+  // Keep the roving Tab stop on whichever photo last had focus.
+  grid.addEventListener('focusin', (e) => {
+    const photo = e.target.closest('.photo');
+    if (photo) setTabStop(photo);
+  });
+
+  // Mouse: hover outlines, click selects, double-click enlarges.
+  // A double-click's first click toggles selection; we undo it so
+  // double-click only enlarges.
+  let lastClick = null;
+  let closedByClickAt = -Infinity;
+  grid.addEventListener('mouseover', (e) => {
+    if (!stillPhoto) setHovered(e.target.closest('.photo'));
+  });
+  grid.addEventListener('mouseleave', () => { if (!handPresent) setHovered(null); });
+  grid.addEventListener('click', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo) return;
+    if (stillPhoto) { closeStill(); closedByClickAt = performance.now(); return; }
+    if (e.detail > 1) return;
+    lastClick = { photo, wasSelected: selectedSet.has(photo.dataset.idx), at: performance.now() };
+    toggleSelection(photo);
+  });
+  grid.addEventListener('dblclick', (e) => {
+    const photo = e.target.closest('.photo');
+    if (!photo || performance.now() - closedByClickAt < 500) return;
+    if (lastClick && lastClick.photo === photo && performance.now() - lastClick.at < 600) {
+      setSelected(photo, lastClick.wasSelected, false);
+    }
+    lastClick = null;
+    openStill(photo);
+  });
+  backdrop.addEventListener('click', closeStill);
+
+  // Scrolling under an open preview would drag it off-centre.
+  gridWrap.addEventListener('wheel', (e) => { if (stillPhoto) e.preventDefault(); }, { passive: false });
+  window.addEventListener('resize', positionStill);
+
+  // ============================================================
+  // STATUS CARD — the gallery is usable from the first second;
+  // this card says what hand tracking is doing, and what to do
+  // if the camera can't be used.
+  // ============================================================
+  const statusCard = document.getElementById('status');
+  const statusTitle = document.getElementById('status-title');
+  const statusMsg = document.getElementById('status-msg');
+  const statusKeys = document.getElementById('status-keys');
+  const statusActions = document.getElementById('status-actions');
+  const statusSpinner = statusCard.querySelector('.spinner');
+  let cameraRunning = false;
+  let statusState = 'loading';
+
+  const STATUS = {
+    loading:    { title: 'Starting hand tracking…', msg: 'You can already browse with keyboard and mouse.', busy: true },
+    permission: { title: 'Allow camera access', msg: 'Allow it to control the gallery with your hand. The feed never leaves your device.', busy: true },
+    denied:     { title: 'Camera is off', msg: 'You can still browse with keyboard and mouse.', keys: true, retry: 'Try camera again' },
+    blocked:    { title: 'Camera is blocked', msg: 'Your browser is blocking the camera. Click the camera icon in the address bar to allow it, then try again.', keys: true, retry: 'Try again' },
+    nocamera:   { title: 'No camera found', msg: 'Browse with keyboard and mouse.', keys: true },
+    busyCam:    { title: 'Camera in use', msg: 'Your camera is in use by another app. Close it and try again.', keys: true, retry: 'Try again' },
+    error:      { title: 'Camera couldn’t start', msg: 'You can still browse with keyboard and mouse.', keys: true, retry: 'Try again' },
+    offline:    { title: 'Hand tracking couldn’t load', msg: 'Check your connection. You can still browse with keyboard and mouse.', keys: true, retry: 'Retry', reload: true },
+  };
+
+  function button(label, primary, onClick) {
+    const b = document.createElement('button');
+    b.className = 'status-btn' + (primary ? ' primary' : '');
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  // null = tracking is running, card goes away.
+  function setStatus(state) {
+    statusState = state;
+    if (!state) { hideStatusCard(); return; }
+    const s = STATUS[state];
+    statusTitle.textContent = s.title;
+    statusMsg.textContent = s.msg;
+    statusSpinner.style.display = s.busy ? '' : 'none';
+    statusKeys.hidden = !s.keys;
+    statusActions.replaceChildren();
+    if (s.retry) statusActions.append(button(s.retry, true, s.reload ? () => location.reload() : () => startCamera(true)));
+    if (!s.busy) statusActions.append(button('Use keyboard & mouse', !s.retry, useKeyboardMouse));
+    camToggle.classList.toggle('off', !s.busy);
+    camToggle.setAttribute('aria-label', s.busy ? 'Hand tracking is starting' : 'Camera off — show camera status');
+    camToggle.title = s.busy ? 'Starting camera' : 'Camera off';
+    showStatusCard();
+    announce(s.title + '. ' + s.msg);
+  }
+  function showStatusCard() {
+    if (!statusState) return;
+    hideGuide();
+    guideReopen.style.display = 'none';
+    statusCard.classList.remove('hidden');
+  }
+  function hideStatusCard() { statusCard.classList.add('hidden'); }
+  function useKeyboardMouse() {
+    hideStatusCard();
+    guideReopen.style.display = 'flex';
+    focusPhoto();
+  }
+
+  // ============================================================
+  // MEDIAPIPE SETUP
+  // ============================================================
+  if (typeof Hands === 'undefined') {
+    setStatus('offline');
     return;
   }
 
@@ -1134,13 +1683,18 @@
   hands.onResults((results) => {
     if (!sawFirstResult) {
       sawFirstResult = true;
-      hideLoader();
+      setStatus(null);
+      camToggle.classList.remove('off');
+      camToggle.setAttribute('aria-label', 'Show camera preview');
+      camToggle.title = 'Show camera';
+      showGuide();
       cursorEl.classList.add('visible');
     }
     const now = performance.now();
     const list = results.multiHandLandmarks;
     if (list && list.length > 0) {
       const lm = list[0];
+      handPresent = true;
       drawOverlay(lm);
 
       const rawHand = handCursorPos(lm);
@@ -1160,7 +1714,8 @@
       }
 
       // ---- Closed-fist grab-and-drag to scroll the grid ----
-      if (currentPose === 'FIST' && !isPinching) {
+      // (Paused while a photo is enlarged — scrolling would drag it off-centre.)
+      if (currentPose === 'FIST' && !isPinching && !stillPhoto) {
         if (!isFistScrolling) {
           isFistScrolling = true;
           fistLastY = cursorPos.y;
@@ -1178,11 +1733,12 @@
       }
 
       if (detectTap(lm, now)) {
-        const target = photoUnderCursor();
-        if (target) {
-          toggleSelection(target);
-          fireTapPulse();
-        }
+        // A tap presses whatever button is under the cursor (Remove, Undo,
+        // Got it…); otherwise it selects the photo there.
+        const btn = buttonUnderCursor();
+        const target = btn ? null : photoUnderCursor();
+        if (btn) { btn.click(); fireTapPulse(); }
+        else if (target) { toggleSelection(target); fireTapPulse(); }
       }
 
       const ratio = pinchRatio(lm);
@@ -1190,7 +1746,7 @@
       // otherwise the ~90ms pose stickiness lets a closing fist briefly read as
       // OPEN and trigger an accidental grab/zoom. A real fist curls all fingers,
       // so rawPose leaves OPEN immediately and only a genuine open-hand pinch fires.
-      if (!isPinching && ratio < PINCH_RATIO && rawPose === 'OPEN' && !isFistScrolling) {
+      if (!isPinching && ratio < PINCH_RATIO && rawPose === 'OPEN' && !isFistScrolling && !stillPhoto) {
         const target = photoUnderCursor();
         if (target) {
           isPinching = true;
@@ -1205,6 +1761,11 @@
       }
     } else {
       drawOverlay(null);
+      if (handPresent) {
+        handPresent = false;
+        setHovered(null);
+        if (handHoverBtn) { handHoverBtn.classList.remove('hand-hover'); handHoverBtn = null; }
+      }
       currentPose = 'NONE';
       pendingPose = 'NONE';
       cursorEl.classList.remove('pointing');
@@ -1222,20 +1783,72 @@
     }
   });
 
-  loaderText.textContent = 'Requesting camera permission…';
-  const camera = new Camera(videoEl, {
-    onFrame: async () => { await hands.send({ image: videoEl }); },
-    width: 640,
-    height: 480,
-  });
-  camera.start().then(() => {
-    loaderText.textContent = 'Warming up the model…';
-  }).catch((err) => {
-    loaderText.innerHTML = 'Camera access is needed to track your hand.<br>'
-      + 'Allow it in your browser, then reload the page.<br>'
-      + '<small style="opacity:0.6">(The camera feed never leaves your device.)</small>';
-    console.error(err);
-  });
+  // ============================================================
+  // CAMERA — asked for directly (MediaPipe's camera helper pops a
+  // raw alert() on failure, so we don't use it).
+  // ============================================================
+  let permState = 'prompt';
+  let trackerFailed = false;
+
+  async function frameLoop() {
+    if (trackerFailed) return;
+    if (videoEl.readyState >= 2) {
+      try { await hands.send({ image: videoEl }); }
+      catch (err) {
+        // The model files come from the CDN on first send — if that fails, say so once.
+        console.error(err);
+        if (!sawFirstResult) { trackerFailed = true; setStatus('offline'); return; }
+      }
+    }
+    requestAnimationFrame(frameLoop);
+  }
+
+  let cameraStarting = false;
+  async function startCamera(isRetry) {
+    if (cameraRunning || cameraStarting) return;
+    cameraStarting = true;
+    setStatus(permState === 'granted' ? 'loading' : 'permission');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw Object.assign(new Error('getUserMedia unavailable'), { name: 'NotSupportedError' });
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 640, height: 480 },
+      });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+      cameraRunning = true;
+      if (!sawFirstResult) setStatus('loading');
+      requestAnimationFrame(frameLoop);
+    } catch (err) {
+      console.error(err);
+      const name = err && err.name;
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        // A refusal on retry (or one the browser remembers) won't prompt again.
+        setStatus(isRetry || permState === 'denied' ? 'blocked' : 'denied');
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        setStatus('nocamera');
+      } else if (name === 'NotReadableError' || name === 'AbortError') {
+        setStatus('busyCam');
+      } else {
+        setStatus('error');
+      }
+    } finally {
+      cameraStarting = false;
+    }
+  }
+
+  // Knowing the permission up front picks the right first message, and lets us
+  // start straight away if the person allows the camera from the address bar.
+  const permQuery = navigator.permissions && navigator.permissions.query
+    ? navigator.permissions.query({ name: 'camera' }) : Promise.reject();
+  permQuery.then((ps) => {
+    permState = ps.state;
+    ps.onchange = () => {
+      permState = ps.state;
+      if (ps.state === 'granted' && !cameraRunning) startCamera(true);
+    };
+  }).catch(() => {}).finally(() => startCamera(false));
 
 })();
 </script>
