@@ -175,6 +175,50 @@
     font-weight: 700;
     letter-spacing: -0.5px;
   }
+  /* min-height reserves room for the action bar, so the grid doesn't jump when it appears */
+  .title-group { display: flex; align-items: center; gap: 14px; min-height: 36px; }
+  /* Selection actions — shown next to "N Selected" */
+  #sel-bar { display: flex; gap: 6px; }
+  #sel-bar[hidden] { display: none; }
+  /* 36px tall: big enough to hit with the hand cursor, not just a mouse */
+  .sel-btn {
+    min-height: 36px;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,0.10);
+    color: var(--ink);
+  }
+  .sel-btn.danger { color: #ff6961; }
+  .sel-btn:hover { background: rgba(255,255,255,0.16); }
+  .sel-btn:focus-visible, #toast-undo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Button under the hand cursor gets the same lift as mouse hover */
+  .hand-hover { box-shadow: 0 0 0 2px rgba(255,255,255,0.85); filter: brightness(1.15); }
+  /* Undo toast after Remove */
+  #toast {
+    position: fixed;
+    left: 50%; bottom: 24px;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 8px 8px 16px;
+    border-radius: 12px;
+    background: rgba(44,44,46,0.96);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    font-size: 13px;
+    z-index: 450;
+    transition: opacity 200ms ease;
+  }
+  #toast.hidden {
+    opacity: 0; pointer-events: none; visibility: hidden;
+    transition: opacity 200ms ease, visibility 0s linear 200ms;
+  }
+  #toast-undo {
+    min-height: 36px;
+    padding: 8px 16px; border-radius: 9px;
+    color: var(--accent); font-weight: 600;
+  }
+  #toast-undo:hover { background: rgba(255,255,255,0.08); }
   .content-tabs {
     display: flex;
     gap: 4px;
@@ -722,7 +766,13 @@
     <!-- CONTENT -->
     <section class="content">
       <div class="content-header">
-        <h1 class="content-title" id="page-title">Library</h1>
+        <div class="title-group">
+          <h1 class="content-title" id="page-title">Library</h1>
+          <div id="sel-bar" role="group" aria-label="Selection actions" hidden>
+            <button class="sel-btn danger" id="sel-remove">Remove</button>
+            <button class="sel-btn" id="sel-clear">Clear</button>
+          </div>
+        </div>
         <nav class="content-tabs">
           <a class="content-tab">Years</a>
           <a class="content-tab">Months</a>
@@ -744,6 +794,12 @@
 
 <!-- Screen-reader announcements (selection count, preview open/close) -->
 <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+
+<!-- Undo after Remove -->
+<div id="toast" class="hidden" role="group" aria-label="Removed photos">
+  <span id="toast-msg"></span>
+  <button id="toast-undo">Undo</button>
+</div>
 
 <!-- CURSOR -->
 <div id="cursor"></div>
@@ -779,6 +835,7 @@
     <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
     <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
     <li><span class="emoji">⌨️</span><span>No camera? Press <b>Tab</b> or any <b>arrow key</b> to reach the photos, then <b>arrows</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
+    <li><span class="emoji">🗑️</span><span>With photos selected, tap <b>Remove</b> (or press <b>Delete</b>). <b>Undo</b> brings them back.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
   <div class="disclaimer">Photos from <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> via <a href="https://picsum.photos" target="_blank" rel="noopener">Lorem Picsum</a>. Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
@@ -797,8 +854,8 @@
   </div>
   <p id="status-msg">You can already browse with keyboard and mouse.</p>
   <p id="status-keys" hidden>
-    <b>Arrow keys</b> move · <b>Space</b> selects · <b>Enter</b> enlarges · <b>Esc</b> closes.
-    Or click to select, double-click to enlarge.
+    <b>Arrow keys</b> move · <b>Space</b> selects · <b>Enter</b> enlarges · <b>Esc</b> closes ·
+    <b>Delete</b> removes selected. Or click to select, double-click to enlarge.
   </p>
   <div class="status-actions" id="status-actions"></div>
 </section>
@@ -967,9 +1024,18 @@
     cursorEl.style.left = cx + 'px';
     cursorEl.style.top = cy + 'px';
 
+    // Buttons under the hand cursor light up, so a tap target is obvious.
+    const btn = handPresent && !stillPhoto ? buttonUnderCursor() : null;
+    if (btn !== handHoverBtn) {
+      if (handHoverBtn) handHoverBtn.classList.remove('hand-hover');
+      if (btn) btn.classList.add('hand-hover');
+      handHoverBtn = btn;
+    }
+
     if (handPresent && !isPinching && !isFistScrolling && !stillPhoto) {
       let hit = null;
-      for (const el of photoEls) {
+      if (!btn) for (const el of photoEls) {
+        if (el.hidden) continue;
         const r = el.getBoundingClientRect();
         if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
           hit = el; break;
@@ -1024,21 +1090,31 @@
   // SELECTION (index-finger tap)
   // ============================================================
   const pageTitle = document.getElementById('page-title');
+  const selBar = document.getElementById('sel-bar');
 
   function photoUnderCursor() {
     const cx = cursorPos.x * window.innerWidth;
     const cy = cursorPos.y * window.innerHeight;
     for (const el of photoEls) {
+      if (el.hidden) continue;
       const r = el.getBoundingClientRect();
       if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return el;
     }
     return null;
   }
 
+  // Any button (or link) under the hand cursor — lets point-and-tap press it.
+  let handHoverBtn = null;
+  function buttonUnderCursor() {
+    const hit = document.elementFromPoint(cursorPos.x * window.innerWidth, cursorPos.y * window.innerHeight);
+    return hit ? hit.closest('button, a[href]') : null;
+  }
+
   function refreshSelectionHeader() {
     const n = selectedSet.size;
     if (n === 0) { pageTitle.textContent = 'Library'; }
     else         { pageTitle.textContent = n + ' Selected'; }
+    selBar.hidden = n === 0;
   }
 
   const srStatus = document.getElementById('sr-status');
@@ -1255,6 +1331,88 @@
   guideReopen.addEventListener('click', showGuide);
 
   // ============================================================
+  // SELECTION ACTIONS — Remove (with Undo) and Clear.
+  // Nothing is deleted: removed photos are hidden and come back on
+  // Undo or reload.
+  // ============================================================
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  let lastRemoved = null;
+  let toastTimer = null;
+
+  function selectedPhotos() { return photoEls.filter(el => selectedSet.has(el.dataset.idx)); }
+  // Where focus was, so actions can hand it back to the photos instead of dropping it.
+  function focusInGallery() {
+    const a = document.activeElement;
+    return grid.contains(a) || selBar.contains(a) || toast.contains(a);
+  }
+
+  function relabelPhotos() {
+    const vis = visiblePhotos();
+    vis.forEach((el, k) => el.setAttribute('aria-label', `Photo ${k + 1} of ${vis.length}`));
+  }
+
+  function clearSelection() {
+    const refocus = focusInGallery();
+    for (const el of selectedPhotos()) setSelected(el, false, false);
+    if (refocus) focusPhoto();
+  }
+
+  function removeSelected() {
+    const removed = selectedPhotos();
+    if (!removed.length || stillPhoto) return;
+    const refocus = focusInGallery();
+    // Next photo to land on: first survivor after the active one, else the last survivor.
+    const anchor = Number((activePhoto || removed[0]).dataset.idx);
+    const survivors = photoEls.filter(el => !el.hidden && !selectedSet.has(el.dataset.idx));
+    const next = survivors.find(el => Number(el.dataset.idx) >= anchor) || survivors[survivors.length - 1] || null;
+    for (const el of removed) {
+      setSelected(el, false, false);
+      el.hidden = true;
+      if (el === lastHoveredPhoto) setHovered(null);
+    }
+    setTabStop(next);
+    if (refocus && next) focusPhoto(visiblePhotos().indexOf(next));
+    relabelPhotos();
+    lastRemoved = removed;
+    const n = removed.length;
+    toastMsg.textContent = n + (n === 1 ? ' photo removed' : ' photos removed');
+    showToast();
+    announce(toastMsg.textContent + '. Press Undo, or Control Z, to bring them back.');
+  }
+
+  function undoRemove() {
+    if (!lastRemoved) return;
+    const refocus = focusInGallery();
+    for (const el of lastRemoved) { el.hidden = false; setSelected(el, true, false); }
+    relabelPhotos();
+    const first = lastRemoved[0];
+    lastRemoved = null;
+    hideToast();
+    if (refocus) focusPhoto(visiblePhotos().indexOf(first));
+    announce('Photos restored');
+  }
+
+  function showToast() {
+    toast.classList.remove('hidden');
+    restartToastTimer();
+  }
+  function hideToast() { toast.classList.add('hidden'); clearTimeout(toastTimer); }
+  function restartToastTimer() {
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+  // Don't vanish while someone is reaching for Undo.
+  toast.addEventListener('mouseenter', () => clearTimeout(toastTimer));
+  toast.addEventListener('focusin', () => clearTimeout(toastTimer));
+  toast.addEventListener('mouseleave', restartToastTimer);
+  toast.addEventListener('focusout', restartToastTimer);
+
+  document.getElementById('toast-undo').addEventListener('click', undoRemove);
+  document.getElementById('sel-remove').addEventListener('click', removeSelected);
+  document.getElementById('sel-clear').addEventListener('click', clearSelection);
+
+  // ============================================================
   // KEYBOARD + MOUSE FALLBACK
   // Every gesture has an equivalent: arrows/mouse = palm cursor,
   // Space/click = point-and-tap, Enter/double-click = pinch-and-pull,
@@ -1262,18 +1420,31 @@
   // works even if the tracker never loads.
   // ============================================================
   const backdrop = document.getElementById('preview-backdrop');
-  let activeIdx = 0;
+  let activePhoto = photoEls[0];   // holds the grid's single Tab stop
 
   function gridColumns() {
     return getComputedStyle(grid).gridTemplateColumns.split(' ').length || 1;
   }
 
+  // Photos still in the grid (Remove hides the others), in visual order.
+  function visiblePhotos() { return photoEls.filter(el => !el.hidden); }
+
+  function setTabStop(el) {
+    if (el === activePhoto) return;
+    if (activePhoto) activePhoto.tabIndex = -1;
+    activePhoto = el;
+    if (el) el.tabIndex = 0;
+  }
+
+  // Focus the i-th visible photo (clamped). With no argument, return to the
+  // last-focused photo, or the first one if that has been removed.
   function focusPhoto(i) {
-    i = Math.max(0, Math.min(photoEls.length - 1, i));
-    photoEls[activeIdx].tabIndex = -1;
-    activeIdx = i;
-    const el = photoEls[i];
-    el.tabIndex = 0;
+    const vis = visiblePhotos();
+    if (!vis.length) return;
+    const el = i === undefined
+      ? (activePhoto && !activePhoto.hidden ? activePhoto : vis[0])
+      : vis[Math.max(0, Math.min(vis.length - 1, i))];
+    setTabStop(el);
     el.focus({ preventScroll: true });
     el.scrollIntoView({ block: 'nearest' });
   }
@@ -1323,7 +1494,8 @@
   grid.addEventListener('keydown', (e) => {
     const photo = e.target.closest('.photo');
     if (!photo) return;
-    const i = Number(photo.dataset.idx);
+    const vis = visiblePhotos();
+    const i = vis.indexOf(photo);
     const cols = gridColumns();
     if (stillPhoto) {
       // While enlarged, only Enter/Escape do anything — the rest would move the photo.
@@ -1343,12 +1515,17 @@
         break;
       }
       case 'Home': focusPhoto(0); break;
-      case 'End':  focusPhoto(photoEls.length - 1); break;
+      case 'End':  focusPhoto(vis.length - 1); break;
       case ' ':    toggleSelection(photo); break;
       case 'Enter': openStill(photo); break;
       case 'Escape':
         if (selectedSet.size === 0) return;
-        for (const el of photoEls) if (el.classList.contains('selected')) setSelected(el, false, false);
+        clearSelection();
+        break;
+      case 'Delete':
+      case 'Backspace':
+        if (selectedSet.size === 0) return;
+        removeSelected();
         break;
       default: return;
     }
@@ -1357,13 +1534,24 @@
 
   // Escape closes the preview wherever focus has wandered.
   // Navigation keys pressed outside the grid jump straight into it — no Tab hunting.
+  // Delete / Ctrl-or-Cmd+Z work from anywhere that isn't a text field.
   const JUMP_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
   document.addEventListener('keydown', (e) => {
+    const typing = e.target.closest('input, textarea, select, [contenteditable]');
+    if (!typing && !stillPhoto && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && lastRemoved) {
+      e.preventDefault();
+      undoRemove();
+      return;
+    }
     if (grid.contains(e.target)) return;
     if (e.key === 'Escape' && stillPhoto) closeStill();
-    else if (JUMP_KEYS.includes(e.key) && !e.target.closest('input, textarea, select, [contenteditable]')) {
+    else if (typing) return;
+    else if (JUMP_KEYS.includes(e.key)) {
       e.preventDefault();
-      focusPhoto(activeIdx);
+      focusPhoto();
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSet.size && !stillPhoto) {
+      e.preventDefault();
+      removeSelected();
     }
   });
 
@@ -1374,11 +1562,7 @@
   // Keep the roving Tab stop on whichever photo last had focus.
   grid.addEventListener('focusin', (e) => {
     const photo = e.target.closest('.photo');
-    if (photo && Number(photo.dataset.idx) !== activeIdx) {
-      photoEls[activeIdx].tabIndex = -1;
-      activeIdx = Number(photo.dataset.idx);
-      photo.tabIndex = 0;
-    }
+    if (photo) setTabStop(photo);
   });
 
   // Mouse: hover outlines, click selects, double-click enlarges.
@@ -1474,7 +1658,7 @@
   function useKeyboardMouse() {
     hideStatusCard();
     guideReopen.style.display = 'flex';
-    focusPhoto(activeIdx);
+    focusPhoto();
   }
 
   // ============================================================
@@ -1549,11 +1733,12 @@
       }
 
       if (detectTap(lm, now)) {
-        const target = photoUnderCursor();
-        if (target) {
-          toggleSelection(target);
-          fireTapPulse();
-        }
+        // A tap presses whatever button is under the cursor (Remove, Undo,
+        // Got it…); otherwise it selects the photo there.
+        const btn = buttonUnderCursor();
+        const target = btn ? null : photoUnderCursor();
+        if (btn) { btn.click(); fireTapPulse(); }
+        else if (target) { toggleSelection(target); fireTapPulse(); }
       }
 
       const ratio = pinchRatio(lm);
@@ -1576,7 +1761,11 @@
       }
     } else {
       drawOverlay(null);
-      if (handPresent) { handPresent = false; setHovered(null); }
+      if (handPresent) {
+        handPresent = false;
+        setHovered(null);
+        if (handHoverBtn) { handHoverBtn.classList.remove('hand-hover'); handHoverBtn = null; }
+      }
       currentPose = 'NONE';
       pendingPose = 'NONE';
       cursorEl.classList.remove('pointing');

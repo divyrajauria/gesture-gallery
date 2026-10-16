@@ -17,7 +17,7 @@ Move your open palm to glide a cursor over photos, pinch to grab one and pull yo
 | ✋ Open palm | Move your hand | Cursor follows; the photo under it gets a white border |
 | 🤏 Pinch (thumb + index) | From an open palm | Grab the photo under the cursor |
 | 🤏 Pinch, then pull back | Move your hand away from the camera | The grabbed photo scales up and follows your hand; release the pinch to spring it back |
-| 👆 Point (index out) | Dip the fingertip briefly | Select / deselect the photo under the cursor (blue checkmark) |
+| 👆 Point (index out) | Dip the fingertip briefly | Select / deselect the photo under the cursor (blue checkmark), or press the button under it (Remove, Undo…) |
 | ✊ Fist | Move your hand up / down | Grab-and-drag scroll through the grid |
 
 ## No camera? Keyboard and mouse
@@ -30,6 +30,9 @@ Every gesture has a keyboard and mouse equivalent, and the gallery is usable fro
 | Point + tap to select | Space | Click |
 | Pinch + pull to enlarge | Enter (Esc closes) | Double-click (click outside closes) |
 | Fist scroll | Page Up / Page Down, Home / End | Scroll wheel |
+| — | Delete removes selected photos; Ctrl/Cmd+Z undoes | **Remove** / **Undo** buttons |
+
+With photos selected, a **Remove** and **Clear** bar appears next to the "N Selected" title; an **Undo** toast follows a removal. Nothing is really deleted — a reload brings every photo back. With the camera on, point-and-tap presses these buttons too: a tap works on any button under the cursor, not just photos.
 
 Esc with nothing enlarged clears the selection. Selection changes and previews are announced to screen readers, and `prefers-reduced-motion` removes decorative animation.
 
