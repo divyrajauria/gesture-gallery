@@ -4,7 +4,7 @@ Control a photo gallery with hand gestures — no mouse, no touch, no headset. J
 
 ![A hand moving in front of a laptop webcam while the cursor glides over a grid of photos and grabs one](docs/demo.gif)
 
-<sub>Recorded on an earlier build with real photos. The live version uses generated tiles so it works offline.</sub>
+<sub>Recorded on an earlier build. The live version uses free-licence photos from Unsplash (via Lorem Picsum); if they can't load, tiles fall back to generated colours so the demo still works offline.</sub>
 
 Move your open palm to glide a cursor over photos, pinch to grab one and pull your hand back to enlarge it, point and tap to select, and make a fist to scroll. Everything runs locally in your browser using your webcam; the camera feed never leaves your device.
 
@@ -48,7 +48,7 @@ This is a single, self-contained HTML file — no build step, no dependencies to
 
 - **Hand tracking:** [MediaPipe Hands](https://developers.google.com/mediapipe) (loaded from a CDN) detects 21 hand landmarks per frame.
 - **Cursor smoothing:** a One-Euro filter keeps the cursor steady at rest and snappy in motion.
-- **Photo tiles:** generated gradients (no external images), so the gallery works fully offline.
+- **Photo tiles:** free-licence photos from [Unsplash](https://unsplash.com) via [Lorem Picsum](https://picsum.photos), a fixed photo per tile. A generated gradient sits underneath as a placeholder and as the fallback when offline.
 - **Stack:** vanilla HTML, CSS, and JavaScript in one file. No framework, no build.
 
 Key tuning constants live near the top of the `<script>` in `index.html` (sensitivity for pinch, scroll, tap, and cursor smoothing) if you want to adjust the feel.

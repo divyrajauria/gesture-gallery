@@ -37,20 +37,20 @@ explain afterwards in plain language, one task at a time.
 
 - Not affiliated with Apple or iCloud. Never add Apple logos, the iCloud name, or
   copied Apple UI assets.
-- Tiles are generated gradients so the demo works offline. The README demo GIF
-  (`docs/demo.gif`) was recorded on an earlier build with free-licence stock photos;
-  its caption says so. If the visuals change a lot, re-record it.
+- Tiles are free-licence Unsplash photos via Lorem Picsum (fixed seed per tile), with a
+  generated gradient underneath as placeholder and offline fallback. Credit lives in the
+  guide card and README. The README demo GIF (`docs/demo.gif`) was recorded on an earlier
+  build; if the visuals change a lot, re-record it.
 
 ## Backlog (in order — confirm with Divy before starting each)
 
-1. Keyboard + mouse fallback (arrows move, Enter/Space select, Esc closes preview).
-2. Camera-denied state: clear message and fallback controls instead of an endless loader.
+1. ~~Keyboard + mouse fallback~~ — done (Space selects, Enter enlarges, Esc closes).
+2. ~~Camera-denied state~~ — done (status card instead of the full-screen loader).
 3. Short in-app onboarding: a first-run hint that teaches one gesture at a time.
 4. Calibration: a "too close / too far / move into frame" indicator.
 5. Performance check on a mid-range laptop; reduce work when the tab is hidden.
 6. Lightweight tests for the gesture classifier (pure functions fed recorded landmarks).
-7. Optional, only if Divy wants: real free-licence photo set behind a toggle, matching
-   the demo GIF.
+7. ~~Real free-licence photos~~ — done (replaced gradients; no toggle, per Divy).
 
 Not planned: mobile support, new gestures, extra animations — they don't change how a
 reviewer judges the piece.

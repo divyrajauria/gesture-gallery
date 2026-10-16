@@ -269,6 +269,18 @@
     white-space: nowrap;
     border: 0;
   }
+  /* Photo fades in over its gradient placeholder once loaded */
+  .tile-img {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    pointer-events: none;
+    user-select: none;
+  }
+  .tile-img.loaded { opacity: 1; }
   .photo.selected::before {
     content: "";
     position: absolute;
@@ -564,6 +576,7 @@
     border-top: 0.5px solid var(--sep);
     font-size: 10px; color: var(--ink-3); line-height: 1.4;
   }
+  #guide .disclaimer a { text-decoration: underline; }
   #guide-dismiss {
     margin-top: 12px; width: 100%;
     padding: 8px; border-radius: 9px;
@@ -768,7 +781,7 @@
     <li><span class="emoji">⌨️</span><span>No camera? Press <b>Tab</b> or any <b>arrow key</b> to reach the photos, then <b>arrows</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
-  <div class="disclaimer">Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
+  <div class="disclaimer">Photos from <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> via <a href="https://picsum.photos" target="_blank" rel="noopener">Lorem Picsum</a>. Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
 </div>
 <button id="guide-reopen" title="Show gesture guide" aria-label="Show gesture guide">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -818,10 +831,15 @@
   const VIEWPORT_PAD = 0.08;
 
   // ============================================================
-  // SELF-CONTAINED PHOTO TILES
-  // No external images — each tile is a deterministic gradient generated
-  // from its index, so the gallery works offline and has zero dependencies.
+  // PHOTO TILES
+  // Free-licence photos (Unsplash, served by Lorem Picsum). Each tile asks
+  // for a fixed seed, so the grid is the same on every visit. A gradient
+  // generated from the index sits underneath as a placeholder while a photo
+  // loads, and stays as the tile if the photo can't load (offline, blocked).
   // ============================================================
+  const PHOTO_URL = (i, px) => `https://picsum.photos/seed/gesture-gallery-${i}/${px}/${px}`;
+  const PHOTO_PX = 400;        // grid tiles
+  const PHOTO_PX_LARGE = 1200; // swapped in when a photo is enlarged
   // Deterministic pseudo-random in [0,1) from a seed — same tiles every reload,
   // but hues are scattered so neighbours don't share a color family.
   function rand(seed) {
@@ -907,11 +925,26 @@
     div.tabIndex = i === 0 ? 0 : -1;   // roving tabindex: the grid is one Tab stop
     div.style.background = tileBackground(i);
     div.innerHTML = `
+      <img class="tile-img" alt="" draggable="false" loading="lazy" decoding="async" src="${PHOTO_URL(i, PHOTO_PX)}">
       <div class="check-badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.2 L6.8 11.4 L12.6 4.8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke="#fff"/></svg></div>
     `;
+    const img = div.querySelector('img');
+    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+    img.addEventListener('error', () => img.remove(), { once: true });  // keep the gradient
     grid.appendChild(div);
   }
   const photoEls = Array.from(document.querySelectorAll('.photo'));
+
+  // Enlarged photos would look soft at grid resolution — fetch a bigger copy.
+  // The grid-size image stays on screen until the big one has arrived.
+  function upgradeToLarge(photo) {
+    const img = photo.querySelector('.tile-img');
+    if (!img || img.dataset.large) return;
+    img.dataset.large = '1';
+    const big = new Image();
+    big.onload = () => { img.src = big.src; };
+    big.src = PHOTO_URL(photo.dataset.idx, PHOTO_PX_LARGE);
+  }
 
   // ============================================================
   // CURSOR + HOVER
@@ -955,6 +988,7 @@
     pullAmount = 0;
     if (lastHoveredPhoto) { lastHoveredPhoto.classList.remove('hovered'); lastHoveredPhoto = null; }
     photo.classList.add('previewing');
+    upgradeToLarge(photo);
   }
 
   function updatePreview(handSize) {
@@ -1268,6 +1302,7 @@
     stillPhoto = photo;
     setHovered(null);
     photo.classList.add('previewing', 'still');
+    upgradeToLarge(photo);
     positionStill();
     backdrop.classList.add('visible');
     announce(photo.getAttribute('aria-label') + ' enlarged. Press Escape to close.');
