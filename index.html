@@ -508,7 +508,7 @@
      STATUS CARD — hand-tracking progress and camera problems.
      Sits where the guide does; the gallery stays usable behind it.
      ============================================================ */
-  #status {
+  #status, #coach {
     position: fixed;
     right: 18px;
     bottom: 62px;
@@ -523,13 +523,34 @@
     z-index: 400;
     transition: opacity 300ms ease, transform 300ms ease;
   }
-  #status.hidden {
+  #status.hidden, #coach.hidden {
     opacity: 0; transform: translateY(8px); pointer-events: none;
     visibility: hidden;
     transition: opacity 300ms ease, transform 300ms ease, visibility 0s linear 300ms;
   }
   .status-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
-  #status h3 { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  #status h3, #coach h3 { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+  /* First-run tour: one gesture at a time */
+  .coach-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  #coach-count { font-size: 11px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.3px; text-transform: uppercase; }
+  .coach-dots { display: flex; gap: 5px; }
+  .coach-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.22); }
+  .coach-dots span.done { background: var(--ink); }
+  .coach-dots span.on { background: var(--accent); }
+  .coach-step { display: flex; gap: 10px; align-items: flex-start; }
+  #coach-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
+  #coach-text { font-size: 12px; color: var(--ink-2); line-height: 1.45; margin-top: 4px; }
+  #coach.got-it #coach-title::after { content: "  ✓"; color: #30d158; }
+  .coach-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .coach-actions .status-btn { flex: 1; }
+  #guide-tour {
+    margin-top: 6px; width: 100%;
+    padding: 8px; border-radius: 9px;
+    background: rgba(255,255,255,0.10);
+    font-size: 12px; font-weight: 600;
+  }
+  #guide-tour:hover { background: rgba(255,255,255,0.16); }
+  #guide-tour:focus-visible, .coach-actions .status-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   #status-msg { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
   #status-keys {
     margin-top: 10px; padding-top: 10px;
@@ -604,7 +625,7 @@
     }
     .photo.tap-flash::after { animation: none; }
     .spinner { display: none; }
-    #status.hidden { transform: none; }
+    #status.hidden, #coach.hidden { transform: none; }
     #guide.hidden { transform: none; }
   }
   #guide h3 {
@@ -795,6 +816,25 @@
 <!-- Screen-reader announcements (selection count, preview open/close) -->
 <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
 
+<!-- FIRST-RUN TOUR: one gesture at a time, advances when you do it -->
+<section id="coach" class="hidden" aria-labelledby="coach-title">
+  <div class="coach-top">
+    <span id="coach-count">Step 1 of 4</span>
+    <div class="coach-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  </div>
+  <div class="coach-step">
+    <span id="coach-emoji" aria-hidden="true">✋</span>
+    <div>
+      <h3 id="coach-title"></h3>
+      <p id="coach-text"></p>
+    </div>
+  </div>
+  <div class="coach-actions" id="coach-actions">
+    <button class="status-btn" id="coach-skip">Skip step</button>
+    <button class="status-btn" id="coach-end">Skip tour</button>
+  </div>
+</section>
+
 <!-- Undo after Remove -->
 <div id="toast" class="hidden" role="group" aria-label="Removed photos">
   <span id="toast-msg"></span>
@@ -838,6 +878,7 @@
     <li><span class="emoji">🗑️</span><span>With photos selected, tap <b>Remove</b> (or press <b>Delete</b>). <b>Undo</b> brings them back.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
+  <button id="guide-tour" hidden>Show me step by step</button>
   <div class="disclaimer">Photos from <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> via <a href="https://picsum.photos" target="_blank" rel="noopener">Lorem Picsum</a>. Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
 </div>
 <button id="guide-reopen" title="Show gesture guide" aria-label="Show gesture guide">
@@ -1062,6 +1103,7 @@
     const sizeRatio = pinchStartHandSize / Math.max(0.03, handSize);
     const targetPull = Math.max(0, Math.min(1, (sizeRatio - 1.0) * 1.2));
     pullAmount = pullAmount * (1 - PULL_SMOOTH) + targetPull * PULL_SMOOTH;
+    if (pullAmount > 0.5) tourEvent('pinch');
     const scale = 1 + pullAmount * (PULL_GAIN - 1);
 
     const r = pinchedPhoto.getBoundingClientRect();
@@ -1662,6 +1704,105 @@
   }
 
   // ============================================================
+  // FIRST-RUN TOUR — teaches one gesture at a time and moves on
+  // when you actually do it. Runs once (remembered in localStorage),
+  // only when hand tracking is live. "?tour" in the URL forces it.
+  // ============================================================
+  const coach = document.getElementById('coach');
+  const coachCount = document.getElementById('coach-count');
+  const coachEmoji = document.getElementById('coach-emoji');
+  const coachTitle = document.getElementById('coach-title');
+  const coachText = document.getElementById('coach-text');
+  const coachActions = document.getElementById('coach-actions');
+  const coachDots = Array.from(coach.querySelectorAll('.coach-dots span'));
+  const guideTour = document.getElementById('guide-tour');
+  const TOUR_KEY = 'gesture-gallery-tour-done';
+  const TOUR = [
+    { id: 'palm',   emoji: '✋', title: 'Move your open palm', text: 'Raise one hand, palm to the camera, and move it around. The cursor follows.' },
+    { id: 'tap',    emoji: '👆', title: 'Point and tap to select', text: 'Point your index finger at a photo, then dip the fingertip, like tapping a screen.' },
+    { id: 'pinch',  emoji: '🤏', title: 'Pinch and pull to enlarge', text: 'Pinch thumb and index over a photo, then pull your hand back towards you.' },
+    { id: 'scroll', emoji: '✊', title: 'Make a fist to scroll', text: 'Close your hand and move it up or down. The grid moves with you.' },
+  ];
+  let tourStep = -1;          // -1 = not running
+  let tourAdvancing = false;  // brief pause on the ✓ before the next step
+  let tourProgress = 0;       // palm travel / scroll distance for the current step
+  let trackingLive = false;
+
+  function tourSeen() {
+    if (/[?&]tour\b/.test(location.search)) return false;
+    try { return localStorage.getItem(TOUR_KEY) === '1'; } catch (e) { return false; }
+  }
+  function markTourSeen() {
+    try { localStorage.setItem(TOUR_KEY, '1'); } catch (e) { /* private mode: tour may show again */ }
+  }
+
+  function startTour() {
+    hideGuide();
+    hideStatusCard();
+    guideReopen.style.display = 'none';
+    coach.classList.remove('hidden');
+    coachActions.hidden = false;
+    showTourStep(0);
+  }
+
+  function showTourStep(i) {
+    tourStep = i;
+    tourProgress = 0;
+    tourAdvancing = false;
+    coach.classList.remove('got-it');
+    const step = TOUR[i];
+    coachCount.textContent = `Step ${i + 1} of ${TOUR.length}`;
+    coachEmoji.textContent = step.emoji;
+    coachTitle.textContent = step.title;
+    coachText.textContent = step.text;
+    coachDots.forEach((d, k) => { d.className = k < i ? 'done' : k === i ? 'on' : ''; });
+    announce(`Step ${i + 1} of ${TOUR.length}. ${step.title}. ${step.text}`);
+  }
+
+  // Called from the gesture code whenever something a step teaches happens.
+  function tourEvent(id, amount) {
+    if (tourStep < 0 || tourAdvancing || TOUR[tourStep].id !== id) return;
+    if (amount !== undefined) {
+      tourProgress += amount;
+      const needed = id === 'palm' ? 0.35 : 150;   // screen-widths of travel / px scrolled
+      if (tourProgress < needed) return;
+    }
+    tourAdvancing = true;
+    coach.classList.add('got-it');
+    announce('Done.');
+    setTimeout(nextTourStep, 700);
+  }
+
+  function nextTourStep() {
+    if (tourStep < 0) return;
+    if (tourStep + 1 < TOUR.length) { showTourStep(tourStep + 1); return; }
+    // Finished
+    tourStep = -1;
+    markTourSeen();
+    coach.classList.remove('got-it');
+    coachCount.textContent = 'All done';
+    coachDots.forEach(d => { d.className = 'done'; });
+    coachEmoji.textContent = '🎉';
+    coachTitle.textContent = 'You’re set';
+    coachText.textContent = 'The ⓘ button has the full guide, including keyboard and mouse.';
+    coachActions.hidden = true;
+    announce('Tour complete. The info button has the full guide.');
+    setTimeout(endTour, 3000);
+  }
+
+  function endTour() {
+    tourStep = -1;
+    markTourSeen();
+    coach.classList.add('hidden');
+    if (statusState) showStatusCard();
+    else guideReopen.style.display = 'flex';
+  }
+
+  document.getElementById('coach-skip').addEventListener('click', () => { if (!tourAdvancing) nextTourStep(); });
+  document.getElementById('coach-end').addEventListener('click', endTour);
+  guideTour.addEventListener('click', startTour);
+
+  // ============================================================
   // MEDIAPIPE SETUP
   // ============================================================
   if (typeof Hands === 'undefined') {
@@ -1687,7 +1828,9 @@
       camToggle.classList.remove('off');
       camToggle.setAttribute('aria-label', 'Show camera preview');
       camToggle.title = 'Show camera';
-      showGuide();
+      trackingLive = true;
+      guideTour.hidden = false;
+      if (tourSeen()) showGuide(); else startTour();
       cursorEl.classList.add('visible');
     }
     const now = performance.now();
@@ -1699,8 +1842,12 @@
 
       const rawHand = handCursorPos(lm);
       const projected = projectToViewport(rawHand);
+      const prevX = cursorPos.x, prevY = cursorPos.y;
       cursorPos.x = cursorFilterX.filter(projected.x, now);
       cursorPos.y = cursorFilterY.filter(projected.y, now);
+      // Count real palm travel for the tour; ignore the jump when a hand first appears.
+      const moved = Math.hypot(cursorPos.x - prevX, cursorPos.y - prevY);
+      if (currentPose === 'OPEN' && moved < 0.08) tourEvent('palm', moved);
 
       lastHandSize = handSizeOf(lm);
 
@@ -1724,7 +1871,9 @@
         } else {
           const dy = cursorPos.y - fistLastY;
           // Grab-the-surface feel: move hand up → content rises → photos below appear
+          const before = gridWrap.scrollTop;
           gridWrap.scrollTop -= dy * SCROLL_GAIN * gridWrap.clientHeight;
+          tourEvent('scroll', Math.abs(gridWrap.scrollTop - before));
           fistLastY = cursorPos.y;
         }
       } else if (isFistScrolling) {
@@ -1738,7 +1887,7 @@
         const btn = buttonUnderCursor();
         const target = btn ? null : photoUnderCursor();
         if (btn) { btn.click(); fireTapPulse(); }
-        else if (target) { toggleSelection(target); fireTapPulse(); }
+        else if (target) { toggleSelection(target); fireTapPulse(); tourEvent('tap'); }
       }
 
       const ratio = pinchRatio(lm);

@@ -43,7 +43,7 @@ This is a single, self-contained HTML file — no build step, no dependencies to
 1. Download or clone this repository.
 2. Open `index.html` in **Google Chrome** or **Microsoft Edge** (desktop).
 3. Allow camera access when prompted.
-4. Raise one hand in view of your webcam and start gesturing. The on-screen guide (ⓘ button, bottom-right) lists every gesture.
+4. Raise one hand in view of your webcam. On your first visit a short tour teaches the four gestures one at a time, moving on as you do each one (add `?tour` to the URL to see it again). The on-screen guide (ⓘ button, bottom-right) lists every gesture.
 
 **Tip:** browsers only grant camera access on secure origins. Opening the file directly (`file://`) works in Chrome/Edge; if your browser blocks the camera, serve it locally instead, e.g. `python3 -m http.server` and visit `http://localhost:8000`.
 
