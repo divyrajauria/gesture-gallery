@@ -6,7 +6,7 @@ Control a photo gallery with hand gestures — no mouse, no touch, no headset. J
 
 <sub>Recorded on an earlier build. The live version uses free-licence photos from Unsplash (via Lorem Picsum); if they can't load, tiles fall back to generated colours so the demo still works offline.</sub>
 
-Move your open palm to glide a cursor over photos, pinch to grab one and pull your hand back to enlarge it, point and tap to select, and make a fist to scroll. Everything runs locally in your browser using your webcam; the camera feed never leaves your device.
+Move your open palm to glide a cursor over photos, make an OK sign to grab one and move your hand back to enlarge it, point and tap to select, and make a fist to scroll. Everything runs locally in your browser using your webcam; the camera feed never leaves your device.
 
 > **Live demo:** [divyrajauria.github.io/gesture-photo-gallery](https://divyrajauria.github.io/gesture-photo-gallery/) — open in desktop Chrome or Edge and allow camera access.
 
@@ -15,8 +15,8 @@ Move your open palm to glide a cursor over photos, pinch to grab one and pull yo
 | Pose | Motion | What it does |
 |------|--------|--------------|
 | ✋ Open palm | Move your hand | Cursor follows; the photo under it gets a white border |
-| 🤏 Pinch (thumb + index) | From an open palm | Grab the photo under the cursor |
-| 🤏 Pinch, then pull back | Move your hand away from the camera | The grabbed photo scales up and follows your hand; release the pinch to spring it back |
+| 👌 OK sign (thumb touches index, other three fingers up) | Over a photo | Grab the photo under the cursor. A curled-finger pinch 🤏 won't grab: the other three fingers must stay up |
+| 👌 OK sign, then move back | Move your whole hand back, away from the screen (not up, down or sideways) | The grabbed photo scales up; moving sideways drags it. Open your fingers to let go |
 | 👆 Point (index out) | Dip the fingertip briefly | Select / deselect the photo under the cursor (blue checkmark), or press the button under it (Remove, Undo…) |
 | ✊ Fist | Move your hand up / down | Grab-and-drag scroll through the grid |
 
@@ -43,7 +43,7 @@ This is a single, self-contained HTML file — no build step, no dependencies to
 1. Download or clone this repository.
 2. Open `index.html` in **Google Chrome** or **Microsoft Edge** (desktop).
 3. Allow camera access when prompted.
-4. Raise one hand in view of your webcam and start gesturing. The on-screen guide (ⓘ button, bottom-right) lists every gesture.
+4. Raise one hand in view of your webcam. On your first visit a short tour teaches the four gestures one at a time, moving on as you do each one (add `?tour` to the URL to see it again). The on-screen guide (ⓘ button, bottom-right) lists every gesture.
 
 **Tip:** browsers only grant camera access on secure origins. Opening the file directly (`file://`) works in Chrome/Edge; if your browser blocks the camera, serve it locally instead, e.g. `python3 -m http.server` and visit `http://localhost:8000`.
 
