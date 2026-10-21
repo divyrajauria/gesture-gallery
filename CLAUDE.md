@@ -46,7 +46,7 @@ explain afterwards in plain language, one task at a time.
 
 1. ~~Keyboard + mouse fallback~~ — done (Space selects, Enter enlarges, Esc closes).
 2. ~~Camera-denied state~~ — done (status card instead of the full-screen loader).
-3. ~~First-run onboarding~~ — done (4-step tour, advances on each gesture; `?tour` replays it).
+3. ~~First-run onboarding~~ — done (4-step tour, advances on each gesture; Back/Next buttons; replay via ⓘ → Take the tour or `?tour`).
 4. Calibration: a "too close / too far / move into frame" indicator.
 5. Performance check on a mid-range laptop; reduce work when the tab is hidden.
 6. Lightweight tests for the gesture classifier (pure functions fed recorded landmarks).
