@@ -540,6 +540,8 @@
   .coach-step { display: flex; gap: 10px; align-items: flex-start; }
   #coach-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
   #coach-text { font-size: 12px; color: var(--ink-2); line-height: 1.45; margin-top: 4px; }
+  /* Live correction while you try the gesture */
+  #coach-hint { font-size: 12px; font-weight: 600; color: #64d2ff; line-height: 1.4; margin-top: 8px; }
   #coach.got-it #coach-title::after { content: "  ✓"; color: #30d158; }
   .coach-actions { display: flex; gap: 6px; margin-top: 12px; }
   .coach-actions .status-btn { flex: 1; }
@@ -827,6 +829,7 @@
     <div>
       <h3 id="coach-title"></h3>
       <p id="coach-text"></p>
+      <p id="coach-hint" hidden></p>
     </div>
   </div>
   <div class="coach-actions" id="coach-actions">
@@ -871,7 +874,7 @@
   <h3>Control it with your hand ✋</h3>
   <ul>
     <li><span class="emoji">✋</span><span>Move your <b>open palm</b> to glide the cursor over photos.</span></li>
-    <li><span class="emoji">🤏</span><span><b>Pinch</b> thumb + index to grab a photo, then <b>pull your hand back</b> to enlarge it.</span></li>
+    <li><span class="emoji">👌</span><span>Make an <b>OK sign</b> over a photo (thumb touches index, other three fingers up) to grab it, then <b>move your hand back, away from the screen</b> to enlarge it. Open your fingers to let go.</span></li>
     <li><span class="emoji">👆</span><span><b>Point</b> with your index finger, then dip the tip to <b>select</b> a photo.</span></li>
     <li><span class="emoji">✊</span><span>Make a <b>fist</b> and move up/down to <b>scroll</b> the grid.</span></li>
     <li><span class="emoji">⌨️</span><span>No camera? Press <b>Tab</b> or any <b>arrow key</b> to reach the photos, then <b>arrows</b> to move, <b>Space</b> to select, <b>Enter</b> to enlarge, <b>Esc</b> to close. Or click to select, double-click to enlarge.</span></li>
@@ -1004,6 +1007,7 @@
   let tapHistory = [];
   let selectedSet = new Set();
   let isFistScrolling = false;
+  let pinchStartedAt = 0;
   let fistLastY = 0;
   let handPresent = false;      // hand hover only runs while a hand is tracked
   let stillPhoto = null;        // photo open in the keyboard/mouse preview
@@ -1713,6 +1717,15 @@
   const coachEmoji = document.getElementById('coach-emoji');
   const coachTitle = document.getElementById('coach-title');
   const coachText = document.getElementById('coach-text');
+  const coachHint = document.getElementById('coach-hint');
+  let tourHintText = '';
+  function setTourHint(text) {
+    if (text === tourHintText) return;
+    tourHintText = text;
+    coachHint.textContent = text;
+    coachHint.hidden = !text;
+    if (text) announce(text);
+  }
   const coachActions = document.getElementById('coach-actions');
   const coachDots = Array.from(coach.querySelectorAll('.coach-dots span'));
   const guideTour = document.getElementById('guide-tour');
@@ -1720,7 +1733,7 @@
   const TOUR = [
     { id: 'palm',   emoji: '✋', title: 'Move your open palm', text: 'Raise one hand, palm to the camera, and move it around. The cursor follows.' },
     { id: 'tap',    emoji: '👆', title: 'Point and tap to select', text: 'Point your index finger at a photo, then dip the fingertip, like tapping a screen.' },
-    { id: 'pinch',  emoji: '🤏', title: 'Pinch and pull to enlarge', text: 'Pinch thumb and index over a photo, then pull your hand back towards you.' },
+    { id: 'pinch',  emoji: '👌', title: 'OK sign, then pull back', text: 'Over a photo, touch thumb to index and keep your other three fingers up. Then move your hand back, away from the screen. Open your fingers to let go.' },
     { id: 'scroll', emoji: '✊', title: 'Make a fist to scroll', text: 'Close your hand and move it up or down. The grid moves with you.' },
   ];
   let tourStep = -1;          // -1 = not running
@@ -1750,6 +1763,7 @@
     tourProgress = 0;
     tourAdvancing = false;
     coach.classList.remove('got-it');
+    setTourHint('');
     const step = TOUR[i];
     coachCount.textContent = `Step ${i + 1} of ${TOUR.length}`;
     coachEmoji.textContent = step.emoji;
@@ -1768,6 +1782,7 @@
       if (tourProgress < needed) return;
     }
     tourAdvancing = true;
+    setTourHint('');
     coach.classList.add('got-it');
     announce('Done.');
     setTimeout(nextTourStep, 700);
@@ -1899,6 +1914,7 @@
         const target = photoUnderCursor();
         if (target) {
           isPinching = true;
+          pinchStartedAt = now;
           cursorEl.classList.add('pinching');
           cursorEl.classList.remove('pointing');
           startPreview(target, lastHandSize);
@@ -1907,6 +1923,18 @@
         isPinching = false;
         cursorEl.classList.remove('pinching');
         endPreview();
+      }
+
+      // Tour, pinch step: say what's off, based on what the camera actually sees.
+      // A hint stays until a different one applies, so it doesn't flicker.
+      if (tourStep >= 0 && TOUR[tourStep].id === 'pinch' && !tourAdvancing) {
+        if (isPinching) {
+          if (pullAmount >= 0.2) setTourHint('Keep going, a little further back.');
+          else if (now - pinchStartedAt > 1200) setTourHint('Got it. Now move your hand back, away from the screen.');
+        } else if (ratio < PINCH_RATIO && rawPose !== 'FIST') {
+          if (rawPose !== 'OPEN') setTourHint('Keep your middle, ring and little fingers up, like an OK sign.');
+          else if (!photoUnderCursor()) setTourHint('Do it over a photo.');
+        }
       }
     } else {
       drawOverlay(null);
