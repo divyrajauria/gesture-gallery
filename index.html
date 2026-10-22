@@ -543,8 +543,15 @@
   /* Live correction while you try the gesture */
   #coach-hint { font-size: 12px; font-weight: 600; color: #64d2ff; line-height: 1.4; margin-top: 8px; }
   #coach.got-it #coach-title::after { content: "  ✓"; color: #30d158; }
-  .coach-actions { display: flex; gap: 6px; margin-top: 12px; }
-  .coach-actions .status-btn { flex: 1; }
+  .coach-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .coach-nav { display: flex; gap: 6px; }
+  .coach-nav .status-btn { flex: 1; min-height: 36px; }
+  .coach-nav .status-btn:disabled { opacity: 0.35; cursor: default; filter: none; }
+  #coach-end {
+    min-height: 32px; padding: 6px; border-radius: 8px;
+    font-size: 12px; color: var(--ink-3);
+  }
+  #coach-end:hover { color: var(--ink); background: rgba(255,255,255,0.06); }
   #guide-tour {
     margin-top: 6px; width: 100%;
     padding: 8px; border-radius: 9px;
@@ -552,7 +559,7 @@
     font-size: 12px; font-weight: 600;
   }
   #guide-tour:hover { background: rgba(255,255,255,0.16); }
-  #guide-tour:focus-visible, .coach-actions .status-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #guide-tour:focus-visible, .coach-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   #status-msg { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
   #status-keys {
     margin-top: 10px; padding-top: 10px;
@@ -833,8 +840,11 @@
     </div>
   </div>
   <div class="coach-actions" id="coach-actions">
-    <button class="status-btn" id="coach-skip">Skip step</button>
-    <button class="status-btn" id="coach-end">Skip tour</button>
+    <div class="coach-nav">
+      <button class="status-btn" id="coach-back"><span aria-hidden="true">←</span> Back</button>
+      <button class="status-btn primary" id="coach-next"><span id="coach-next-label">Next</span> <span aria-hidden="true">→</span></button>
+    </div>
+    <button id="coach-end">Skip tour</button>
   </div>
 </section>
 
@@ -881,7 +891,7 @@
     <li><span class="emoji">🗑️</span><span>With photos selected, tap <b>Remove</b> (or press <b>Delete</b>). <b>Undo</b> brings them back.</span></li>
   </ul>
   <button id="guide-dismiss">Got it</button>
-  <button id="guide-tour" hidden>Show me step by step</button>
+  <button id="guide-tour" hidden>Take the tour</button>
   <div class="disclaimer">Photos from <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a> via <a href="https://picsum.photos" target="_blank" rel="noopener">Lorem Picsum</a>. Independent educational demo. Not affiliated with, endorsed by, or connected to Apple Inc. or iCloud.</div>
 </div>
 <button id="guide-reopen" title="Show gesture guide" aria-label="Show gesture guide">
@@ -1738,6 +1748,9 @@
   ];
   let tourStep = -1;          // -1 = not running
   let tourAdvancing = false;  // brief pause on the ✓ before the next step
+  let tourTimer = null;       // that pause, or the "You're set" fade-out
+  const coachBack = document.getElementById('coach-back');
+  const coachNextLabel = document.getElementById('coach-next-label');
   let tourProgress = 0;       // palm travel / scroll distance for the current step
   let trackingLive = false;
 
@@ -1759,9 +1772,12 @@
   }
 
   function showTourStep(i) {
+    clearTimeout(tourTimer);
     tourStep = i;
     tourProgress = 0;
     tourAdvancing = false;
+    coachBack.disabled = i === 0;
+    coachNextLabel.textContent = i === TOUR.length - 1 ? 'Finish' : 'Next';
     coach.classList.remove('got-it');
     setTourHint('');
     const step = TOUR[i];
@@ -1785,7 +1801,7 @@
     setTourHint('');
     coach.classList.add('got-it');
     announce('Done.');
-    setTimeout(nextTourStep, 700);
+    tourTimer = setTimeout(nextTourStep, 700);
   }
 
   function nextTourStep() {
@@ -1799,13 +1815,14 @@
     coachDots.forEach(d => { d.className = 'done'; });
     coachEmoji.textContent = '🎉';
     coachTitle.textContent = 'You’re set';
-    coachText.textContent = 'The ⓘ button has the full guide, including keyboard and mouse.';
+    coachText.textContent = 'Replay it anytime: ⓘ → Take the tour. The guide also covers keyboard and mouse.';
     coachActions.hidden = true;
-    announce('Tour complete. The info button has the full guide.');
-    setTimeout(endTour, 3000);
+    announce('Tour complete. Replay it anytime from the info button, then Take the tour.');
+    tourTimer = setTimeout(endTour, 4000);
   }
 
   function endTour() {
+    clearTimeout(tourTimer);
     tourStep = -1;
     markTourSeen();
     coach.classList.add('hidden');
@@ -1813,7 +1830,9 @@
     else guideReopen.style.display = 'flex';
   }
 
-  document.getElementById('coach-skip').addEventListener('click', () => { if (!tourAdvancing) nextTourStep(); });
+  // Back / Next work at any time, even during the ✓ pause.
+  coachBack.addEventListener('click', () => { if (tourStep > 0) showTourStep(tourStep - 1); });
+  document.getElementById('coach-next').addEventListener('click', () => { clearTimeout(tourTimer); nextTourStep(); });
   document.getElementById('coach-end').addEventListener('click', endTour);
   guideTour.addEventListener('click', startTour);
 
