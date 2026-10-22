@@ -52,6 +52,7 @@ This is a single, self-contained HTML file — no build step, no dependencies to
 - **Hand tracking:** [MediaPipe Hands](https://developers.google.com/mediapipe) (loaded from a CDN) detects 21 hand landmarks per frame.
 - **Cursor smoothing:** a One-Euro filter keeps the cursor steady at rest and snappy in motion.
 - **Photo tiles:** free-licence photos from [Unsplash](https://unsplash.com) via [Lorem Picsum](https://picsum.photos), a fixed photo per tile. A generated gradient sits underneath as a placeholder and as the fallback when offline.
+- **Light on the machine:** the hand model runs once per new camera frame (not once per screen refresh), nothing repaints while the page is idle, and the camera is released when you switch tabs (its light goes off) and quietly reconnected when you come back.
 - **Stack:** vanilla HTML, CSS, and JavaScript in one file. No framework, no build.
 
 Key tuning constants live near the top of the `<script>` in `index.html` (sensitivity for pinch, scroll, tap, and cursor smoothing) if you want to adjust the feel.
