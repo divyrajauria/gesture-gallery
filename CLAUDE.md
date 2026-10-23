@@ -48,7 +48,7 @@ explain afterwards in plain language, one task at a time.
 2. ~~Camera-denied state~~ — done (status card instead of the full-screen loader).
 3. ~~First-run onboarding~~ — done (4-step tour, advances on each gesture; Back/Next buttons; replay via ⓘ → Take the tour or `?tour`).
 4. Calibration: a "too close / too far / move into frame" indicator.
-5. Performance check on a mid-range laptop; reduce work when the tab is hidden.
+5. ~~Performance + hidden tab~~ — done (camera released when the tab is hidden; model runs once per camera frame; idle repaint bug fixed). Not yet measured on a real mid-range laptop.
 6. Lightweight tests for the gesture classifier (pure functions fed recorded landmarks).
 7. ~~Real free-licence photos~~ — done (replaced gradients; no toggle, per Divy).
 

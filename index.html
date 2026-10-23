@@ -259,7 +259,6 @@
     aspect-ratio: 1;
     overflow: hidden;
     transition: transform 380ms cubic-bezier(0.34, 1.4, 0.5, 1);
-    will-change: transform;
     cursor: default;
     background: #1a1a1d;
   }
@@ -272,7 +271,10 @@
     box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
     z-index: 4;
   }
+  /* Layer promotion only for the photo being enlarged — on all 200 tiles it
+     made every repaint recomposite 200 layers. */
   .photo.previewing {
+    will-change: transform;
     transition: none;
     z-index: 1000;
     box-shadow: 0 40px 100px rgba(0,0,0,0.75),
@@ -523,6 +525,8 @@
     z-index: 400;
     transition: opacity 300ms ease, transform 300ms ease;
   }
+  /* A hidden spinner kept animating and forced a full repaint every frame */
+  #status.hidden .spinner { animation: none; }
   #status.hidden, #coach.hidden {
     opacity: 0; transform: translateY(8px); pointer-events: none;
     visibility: hidden;
@@ -1079,8 +1083,14 @@
     cursorEl.style.left = cx + 'px';
     cursorEl.style.top = cy + 'px';
 
+    // Hit-testing only while a hand is tracked, and only when the cursor or
+    // the grid under it has actually moved.
+    const key = handPresent && !stillPhoto ? `${cx|0},${cy|0},${gridWrap.scrollTop|0},${layoutVersion}` : '';
+    if (key === lastHitKey) return;
+    lastHitKey = key;
+
     // Buttons under the hand cursor light up, so a tap target is obvious.
-    const btn = handPresent && !stillPhoto ? buttonUnderCursor() : null;
+    const btn = key ? buttonUnderCursor() : null;
     if (btn !== handHoverBtn) {
       if (handHoverBtn) handHoverBtn.classList.remove('hand-hover');
       if (btn) btn.classList.add('hand-hover');
@@ -1088,15 +1098,7 @@
     }
 
     if (handPresent && !isPinching && !isFistScrolling && !stillPhoto) {
-      let hit = null;
-      if (!btn) for (const el of photoEls) {
-        if (el.hidden) continue;
-        const r = el.getBoundingClientRect();
-        if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
-          hit = el; break;
-        }
-      }
-      setHovered(hit);
+      setHovered(btn ? null : photoUnderCursor());
     }
   }
 
@@ -1148,21 +1150,22 @@
   const pageTitle = document.getElementById('page-title');
   const selBar = document.getElementById('sel-bar');
 
+  // The browser's own hit-test: one lookup, skips removed photos, and
+  // respects anything (cards, buttons) sitting on top of the grid.
+  function elementUnderCursor() {
+    return document.elementFromPoint(cursorPos.x * window.innerWidth, cursorPos.y * window.innerHeight);
+  }
   function photoUnderCursor() {
-    const cx = cursorPos.x * window.innerWidth;
-    const cy = cursorPos.y * window.innerHeight;
-    for (const el of photoEls) {
-      if (el.hidden) continue;
-      const r = el.getBoundingClientRect();
-      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) return el;
-    }
-    return null;
+    const hit = elementUnderCursor();
+    return hit ? hit.closest('.photo') : null;
   }
 
   // Any button (or link) under the hand cursor — lets point-and-tap press it.
   let handHoverBtn = null;
+  let lastHitKey = '';
+  let layoutVersion = 0;   // bumped when photos are removed/restored, so hover re-checks
   function buttonUnderCursor() {
-    const hit = document.elementFromPoint(cursorPos.x * window.innerWidth, cursorPos.y * window.innerHeight);
+    const hit = elementUnderCursor();
     return hit ? hit.closest('button, a[href]') : null;
   }
 
@@ -1299,6 +1302,8 @@
     [0,17],
   ];
   function drawOverlay(lm) {
+    // The skeleton (with its glow) only shows in the camera preview — skip it when collapsed.
+    if (!camWrap.classList.contains('expanded')) return;
     octx.clearRect(0, 0, overlay.width, overlay.height);
     if (!lm) return;
     const w = overlay.width, h = overlay.height;
@@ -1366,6 +1371,7 @@
   }
   function collapseCam() {
     camWrap.classList.remove('expanded');
+    octx.clearRect(0, 0, overlay.width, overlay.height);
     // Park the <video> off-screen so MediaPipe keeps getting frames
     videoHost.appendChild(videoEl);
   }
@@ -1431,6 +1437,7 @@
     if (refocus && next) focusPhoto(visiblePhotos().indexOf(next));
     relabelPhotos();
     lastRemoved = removed;
+    layoutVersion++;
     const n = removed.length;
     toastMsg.textContent = n + (n === 1 ? ' photo removed' : ' photos removed');
     showToast();
@@ -1441,6 +1448,7 @@
     if (!lastRemoved) return;
     const refocus = focusInGallery();
     for (const el of lastRemoved) { el.hidden = false; setSelected(el, true, false); }
+    layoutVersion++;
     relabelPhotos();
     const first = lastRemoved[0];
     lastRemoved = null;
@@ -1855,7 +1863,8 @@
   });
 
   let sawFirstResult = false;
-  hands.onResults((results) => {
+  hands.onResults(onHandResults);
+  function onHandResults(results) {
     if (!sawFirstResult) {
       sawFirstResult = true;
       setStatus(null);
@@ -1977,7 +1986,7 @@
         endPreview();
       }
     }
-  });
+  }
 
   // ============================================================
   // CAMERA — asked for directly (MediaPipe's camera helper pops a
@@ -1986,9 +1995,15 @@
   let permState = 'prompt';
   let trackerFailed = false;
 
-  async function frameLoop() {
-    if (trackerFailed) return;
-    if (videoEl.readyState >= 2) {
+  // Each camera start gets its own loop id, so a quick hide/show can't leave two loops running.
+  let loopGen = 0;
+  let lastVideoTime = -1;
+  async function frameLoop(gen) {
+    if (trackerFailed || gen !== loopGen || !cameraRunning) return;
+    // The screen refreshes ~60×/s but a webcam gives ~30 frames — only run the
+    // model when the camera has delivered a new one, instead of every frame twice.
+    if (videoEl.readyState >= 2 && videoEl.currentTime !== lastVideoTime) {
+      lastVideoTime = videoEl.currentTime;
       try { await hands.send({ image: videoEl }); }
       catch (err) {
         // The model files come from the CDN on first send — if that fails, say so once.
@@ -1996,14 +2011,15 @@
         if (!sawFirstResult) { trackerFailed = true; setStatus('offline'); return; }
       }
     }
-    requestAnimationFrame(frameLoop);
+    requestAnimationFrame(() => frameLoop(gen));
   }
 
   let cameraStarting = false;
-  async function startCamera(isRetry) {
+  // quiet = reconnecting after the tab was hidden: no status card unless it fails.
+  async function startCamera(isRetry, quiet) {
     if (cameraRunning || cameraStarting) return;
     cameraStarting = true;
-    setStatus(permState === 'granted' ? 'loading' : 'permission');
+    if (!quiet) setStatus(permState === 'granted' ? 'loading' : 'permission');
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw Object.assign(new Error('getUserMedia unavailable'), { name: 'NotSupportedError' });
@@ -2015,7 +2031,8 @@
       await videoEl.play();
       cameraRunning = true;
       if (!sawFirstResult) setStatus('loading');
-      requestAnimationFrame(frameLoop);
+      const gen = ++loopGen;
+      requestAnimationFrame(() => frameLoop(gen));
     } catch (err) {
       console.error(err);
       const name = err && err.name;
@@ -2045,6 +2062,26 @@
       if (ps.state === 'granted' && !cameraRunning) startCamera(true);
     };
   }).catch(() => {}).finally(() => startCamera(false));
+
+  // ============================================================
+  // HIDDEN TAB — release the camera (its light goes off) and drop any
+  // half-done gesture; reconnect quietly when the tab comes back.
+  // ============================================================
+  let pausedForHidden = false;
+  function pauseCamera() {
+    if (!cameraRunning) return;
+    cameraRunning = false;
+    loopGen++;
+    const stream = videoEl.srcObject;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
+    pausedForHidden = true;
+    if (sawFirstResult) onHandResults({ multiHandLandmarks: [] });   // same as the hand leaving the frame
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) pauseCamera();
+    else if (pausedForHidden) { pausedForHidden = false; startCamera(false, true); }
+  });
 
 })();
 </script>
