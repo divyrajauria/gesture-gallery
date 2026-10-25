@@ -77,6 +77,27 @@ This is a single, self-contained HTML file — no build step, no dependencies to
 
 **Tip:** browsers only grant camera access on secure origins. Opening the file directly (`file://`) works in Chrome/Edge; if your browser blocks the camera, serve it locally instead, e.g. `python3 -m http.server` and visit `http://localhost:8000`.
 
+## Tests
+
+[![Tests](https://github.com/divyrajauria/gesture-photo-gallery/actions/workflows/tests.yml/badge.svg)](https://github.com/divyrajauria/gesture-photo-gallery/actions/workflows/tests.yml)
+
+58 end-to-end tests in [`tests/`](tests/) run in Chromium on every pull request. The site itself still has no dependencies; [Playwright](https://playwright.dev) is used only to test it.
+
+Hand tracking is the hard part to test without a webcam. The tests swap MediaPipe's model for a stand-in that feeds **simulated hand landmarks** (see `hand()` in [`tests/helpers.js`](tests/helpers.js)), so the page's real gesture code (poses, the OK-sign grab, taps, fist scroll) runs exactly as it would with a hand in front of the camera. They also cover:
+- keyboard and mouse;
+- every camera failure state, using Chromium's fake webcam;
+- releasing the camera in a hidden tab;
+- the tour and its hints;
+- Remove/Undo;
+- the offline photo fallback;
+- reduced motion.
+
+```sh
+npm install
+npx playwright install chromium   # first time only
+npm test
+```
+
 ## Requirements
 
 - A webcam for hand gestures (optional — keyboard and mouse work without one)

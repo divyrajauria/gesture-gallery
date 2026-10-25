@@ -23,6 +23,8 @@ explain afterwards in plain language, one task at a time.
 - **Show Divy the change before it reaches `main`.** Merging to `main` redeploys the
   live site.
 - Keep it one file, no framework, no build step, no new dependencies without asking.
+  (Playwright is approved as a test-only dev dependency; nothing ships to visitors.)
+- Run `npm test` before pushing, and add or update a test in `tests/` with each change.
 
 ## Accessibility is part of the story
 
@@ -49,7 +51,7 @@ explain afterwards in plain language, one task at a time.
 3. ~~First-run onboarding~~ — done (4-step tour, advances on each gesture; Back/Next buttons; replay via ⓘ → Take the tour or `?tour`).
 4. Calibration: a "too close / too far / move into frame" indicator.
 5. ~~Performance + hidden tab~~ — done (camera released when the tab is hidden; model runs once per camera frame; idle repaint bug fixed). Not yet measured on a real mid-range laptop.
-6. Lightweight tests for the gesture classifier (pure functions fed recorded landmarks).
+6. ~~Tests~~ — done (Playwright end-to-end suite in `tests/`, simulated hand landmarks; runs on every PR via GitHub Actions).
 7. ~~Real free-licence photos~~ — done (replaced gradients; no toggle, per Divy).
 
 Not planned: mobile support, new gestures, extra animations — they don't change how a
