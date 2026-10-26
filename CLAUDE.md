@@ -44,15 +44,19 @@ explain afterwards in plain language, one task at a time.
   guide card and README. The README demo GIF (`docs/demo.gif`) was recorded on an earlier
   build; if the visuals change a lot, re-record it.
 
-## Backlog (in order — confirm with Divy before starting each)
+## Status
 
-1. ~~Keyboard + mouse fallback~~ — done (Space selects, Enter enlarges, Esc closes).
-2. ~~Camera-denied state~~ — done (status card instead of the full-screen loader).
-3. ~~First-run onboarding~~ — done (4-step tour, advances on each gesture; Back/Next buttons; replay via ⓘ → Take the tour or `?tour`).
-4. Calibration: a "too close / too far / move into frame" indicator.
-5. ~~Performance + hidden tab~~ — done (camera released when the tab is hidden; model runs once per camera frame; idle repaint bug fixed). Not yet measured on a real mid-range laptop.
-6. ~~Tests~~ — done (Playwright end-to-end suite in `tests/`, simulated hand landmarks; runs on every PR via GitHub Actions).
-7. ~~Real free-licence photos~~ — done (replaced gradients; no toggle, per Divy).
+Shipped: keyboard + mouse fallback; camera status card (no full-screen loader);
+first-run tour with Back/Next and live OK-sign hints; Unsplash photos; Remove/Undo;
+performance work and camera release in hidden tabs; non-interactive decorative frame;
+58-test Playwright suite running on every PR.
+
+Open (confirm with Divy before starting any):
+- Calibration indicator ("too close / too far / move into frame"). Deprioritised: the
+  tour's live hints already cover the main confusion.
+- Performance has only been measured in Chromium with CPU throttling, not on a real
+  mid-range laptop.
+- The README demo GIF predates the photos, tour and Remove/Undo; Divy chose to keep it.
 
 Not planned: mobile support, new gestures, extra animations — they don't change how a
 reviewer judges the piece.
