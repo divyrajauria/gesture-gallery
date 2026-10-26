@@ -2,7 +2,7 @@
 
 Divy Rajauria's hand-gesture photo gallery. A single self-contained `index.html`
 (vanilla HTML/CSS/JS, MediaPipe Hands from a pinned CDN, no build step).
-Live on GitHub Pages: https://divyrajauria.github.io/gesture-photo-gallery/
+Live on GitHub Pages: https://divyrajauria.github.io/gesture-gallery/
 
 ## Why it exists
 

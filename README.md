@@ -1,10 +1,10 @@
 # Gesture Gallery
 
-[![Tests](https://github.com/divyrajauria/gesture-photo-gallery/actions/workflows/tests.yml/badge.svg)](https://github.com/divyrajauria/gesture-photo-gallery/actions/workflows/tests.yml)
+[![Tests](https://github.com/divyrajauria/gesture-gallery/actions/workflows/tests.yml/badge.svg)](https://github.com/divyrajauria/gesture-gallery/actions/workflows/tests.yml)
 
 Browse a photo gallery with hand gestures, right in the browser. Webcam optional: every gesture also works with keyboard and mouse.
 
-**[Try it live →](https://divyrajauria.github.io/gesture-photo-gallery/)** Desktop Chrome or Edge. Hand tracking runs on your device; the camera feed never leaves it.
+**[Try it live →](https://divyrajauria.github.io/gesture-gallery/)** Desktop Chrome or Edge. Hand tracking runs on your device; the camera feed never leaves it.
 
 ![A hand moving in front of a laptop webcam while the cursor glides over a grid of photos and grabs one](docs/demo.gif)
 
