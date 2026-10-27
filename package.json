@@ -1,5 +1,5 @@
 {
-  "name": "gesture-photo-gallery",
+  "name": "gesture-gallery",
   "private": true,
   "description": "Test tooling only — the site itself is index.html with no build step and no runtime dependencies.",
   "scripts": {
