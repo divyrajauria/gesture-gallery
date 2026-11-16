@@ -201,7 +201,7 @@
   .exp-wide { grid-column: 1 / -1; }
   .exp .frame { border-radius: 12px; }
   .exp-text { margin-top: 14px; }
-  .exp-text h3 { margin: 4px 0 6px; font-size: 20px; }
+  .exp-text h3 { margin: 0 0 4px; font-size: 20px; }
   .exp-text p { font-size: 15px; line-height: 1.55; }
   .exp-wide .exp-text { max-width: 550px; }
   @media (max-width: 620px) { .experiments { grid-template-columns: 1fr; } }
@@ -520,26 +520,26 @@ requestAnimationFrame(frameLoop);</code></pre>
   </section>
 
   <!-- 10 OTHER EXPERIMENTS -->
-  <section id="experiments" data-num="10" data-name="More experiments">
+  <section id="experiments" data-num="10" data-name="Other experiments">
     <div class="col">
       <div class="mono">10</div>
-      <h2>More hand experiments</h2>
-      <p class="thesis">The gallery was one of several things I built to learn what hands are good at.</p>
-      <p>Before the gallery, I built smaller experiments. Each one tested a single thing a hand can do that a mouse can't, and what I learned from them shaped the gallery's gestures.</p>
+      <h2>Other hand-tracking experiments</h2>
+      <p class="thesis">The gallery wasn't the only idea. These are quick sketches of what else a hand could do on a screen.</p>
+      <p>None of them is a product. Each one tries a single interaction, small enough to build in a sitting.</p>
     </div>
 
     <div class="wide experiments">
       <figure class="exp exp-wide reveal">
         <div class="frame"><video src="media/gesture-gallery/exp-slice.mp4" poster="media/gesture-gallery/exp-slice-poster.jpg" muted loop playsinline preload="metadata" aria-label="A fruit-slicing game: a glowing trail follows the index finger and cuts fruit in the air. The webcam view sits in the corner."></video></div>
-        <div class="exp-text"><div class="mono">Slice</div><h3>Your fingertip is the blade</h3><p>A glowing trail follows the index finger and cuts fruit as it flies. It tested speed: tracking has to keep up with a fast swipe, or the game feels broken.</p></div>
+        <div class="exp-text"><h3>A fruit slicer</h3><p>Swipe a finger through the air to cut the fruit.</p></div>
       </figure>
       <figure class="exp reveal">
-        <div class="frame"><video src="media/gesture-gallery/exp-noir.mp4" poster="media/gesture-gallery/exp-noir-poster.jpg" muted loop playsinline preload="metadata" aria-label="Two hands make L-shapes to frame part of the camera view; inside the frame the image turns black and white, labelled REC #0001."></video></div>
-        <div class="exp-text"><div class="mono">Noir</div><h3>Frame a shot with two hands</h3><p>Two L-shapes with thumbs and index fingers mark a frame, and whatever sits inside becomes a numbered black-and-white shot. It tested two hands working together to define a space.</p></div>
+        <div class="frame"><video src="media/gesture-gallery/exp-noir.mp4" poster="media/gesture-gallery/exp-noir-poster.jpg" muted loop playsinline preload="metadata" aria-label="A camera you work with your fingers: two hands frame part of the camera view, and a pinch takes the photo."></video></div>
+        <div class="exp-text"><h3>A camera with no button</h3><p>Pinch your fingers to take the photo.</p></div>
       </figure>
       <figure class="exp reveal">
-        <div class="frame"><video src="media/gesture-gallery/exp-water.mp4" poster="media/gesture-gallery/exp-water-poster.jpg" muted loop playsinline preload="metadata" aria-label="A sweep of the hand washes the room off the camera feed and reveals a sunlit landscape underneath."></video></div>
-        <div class="exp-text"><div class="mono">Water</div><h3>Sweep the room away</h3><p>A sweep of the hand washes the room off the camera feed and reveals a landscape underneath. It tested a gesture as a continuous brush instead of a one-off trigger.</p></div>
+        <div class="frame"><video src="media/gesture-gallery/exp-water.mp4" poster="media/gesture-gallery/exp-water-poster.jpg" muted loop playsinline preload="metadata" aria-label="A curtain layer over the camera view that the hand pushes aside, revealing a landscape underneath."></video></div>
+        <div class="exp-text"><h3>A curtain you move by hand</h3><p>Push the layer aside with your hand to see what's underneath.</p></div>
       </figure>
     </div>
 
