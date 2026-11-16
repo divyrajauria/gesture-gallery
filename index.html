@@ -261,10 +261,10 @@
     box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
     z-index: 4;
   }
-  /* Layer promotion only for the photo being enlarged — on all 200 tiles it
-     made every repaint recomposite 200 layers. */
+  /* No will-change here: it makes Chrome keep the tile's small raster and
+     stretch it, so an enlarged photo stays blurry even after the 1200px copy
+     loads. (On all 200 tiles it also recomposited every tile on each repaint.) */
   .photo.previewing {
-    will-change: transform;
     transition: none;
     z-index: 1000;
     box-shadow: 0 40px 100px rgba(0,0,0,0.75),

@@ -23,6 +23,15 @@ test('an enlarged photo switches to a sharper 1200px copy', async ({ page }) => 
   expect(await page.locator('[data-idx="1"] .tile-img').getAttribute('src')).toMatch(/\/1200\/1200$/);
 });
 
+test('an enlarged photo is not layer-promoted, so it is redrawn sharp instead of stretched', async ({ page }) => {
+  await openGallery(page, { photos: 'stub' });
+  await page.locator('.photo').nth(1).focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  const willChange = await page.locator('[data-idx="1"]').evaluate((e) => getComputedStyle(e).willChange);
+  expect(willChange).toBe('auto');
+});
+
 test('offline: failed photos are removed and the gradient tiles remain', async ({ page }) => {
   await openGallery(page, { photos: 'offline' });
   await page.waitForTimeout(800);
