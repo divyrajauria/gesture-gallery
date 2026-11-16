@@ -62,7 +62,7 @@
   @media (max-width: 1100px) { .toc { display: none; } }
 
   /* ---------- column ---------- */
-  main { padding: 140px 0 80px; }
+  main { padding: 72px 0 80px; }
   .col { width: var(--col); margin: 0 auto; }
   .wide { width: var(--wide); margin-left: auto; margin-right: auto; }
   .mono { font: 400 11px/1.6 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); }
@@ -95,8 +95,7 @@
     box-shadow: 0 0 0 1px var(--card-edge), 0 24px 60px -24px rgba(18, 17, 16, .35);
   }
   .frame video { display: block; width: 100%; height: auto; }
-  figcaption { font: 400 11px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 14px; display: flex; gap: 8px; }
-  figcaption::before { content: ""; flex: 0 0 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: var(--accent); }
+  figcaption { font: 400 11px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 14px; }
   .card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 14px; padding: 22px; overflow: hidden; }
   .card .mono { font-size: 10px; }
 
@@ -104,14 +103,51 @@
   .reveal { opacity: 0; transform: translateY(18px); transition: opacity .8s var(--ease), transform .8s var(--ease-spring); }
   .reveal.in { opacity: 1; transform: none; }
 
-  /* ---------- hero video with live link ---------- */
-  .hero-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font: 400 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); text-decoration: none; }
-  .hero-cta:hover { text-decoration: underline; }
+  /* ---------- reading progress ---------- */
+  .progress { position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); z-index: 30; }
+
+  /* ---------- hero: full-bleed video that settles as you scroll ---------- */
+  .hero { position: relative; height: 175vh; }
+  .hero-stage { position: sticky; top: 0; height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .hero-frame {
+    position: relative; width: 100%; max-width: 1600px; height: 100%; max-height: calc((100vw - 32px) * .5625);
+    border-radius: 18px; overflow: hidden; background: #1c1c1e; transform-origin: 50% 100%;
+    box-shadow: 0 0 0 1px var(--card-edge), 0 40px 90px -40px rgba(18, 17, 16, .5);
+  }
+  .hero-frame video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; }
+  .hero-frame::after { content: ""; position: absolute; inset: auto 0 0 0; height: 30%; background: linear-gradient(to top, rgba(0, 0, 0, .45), transparent); pointer-events: none; }
+  .hero-tag { position: absolute; left: 24px; bottom: 20px; z-index: 1; display: flex; gap: 18px; font: 400 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .85); }
+  .hero-cue { position: absolute; right: 24px; bottom: 20px; z-index: 1; display: flex; align-items: center; gap: 10px; font: 400 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .85); }
+  .hero-cue i { display: block; width: 1px; height: 26px; background: rgba(255, 255, 255, .85); transform-origin: 50% 0; animation: cue 1.8s var(--ease) infinite; }
+  @keyframes cue { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); transform-origin: 50% 0; } 51% { transform-origin: 50% 100%; } 100% { transform: scaleY(0); transform-origin: 50% 100%; } }
+  body.in-hero .pill, body.in-hero .toc { opacity: 0; pointer-events: none; }
+  .pill, .toc { transition: opacity .4s var(--ease); }
+  @media (max-width: 700px) {
+    .hero { height: auto; }
+    .hero-stage { position: relative; height: auto; padding: 16px 16px 0; }
+    .hero-frame { height: auto; max-height: none; aspect-ratio: 4 / 3; border-radius: 14px; }
+    .hero-cue { display: none; }
+  }
+
+  /* ---------- the four gestures ---------- */
+  .gestures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 34px; }
+  .gesture { margin: 0; background: var(--card); border: 1px solid var(--card-edge); border-radius: 12px; padding: 12px 14px 16px; }
+  .gesture svg { display: block; width: 100%; height: auto; }
+  .gesture .g-name { font: 700 17px/1.2 var(--display); letter-spacing: -.02em; margin-top: 4px; }
+  .gesture .g-does { font: 400 10px/1.5 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 4px; }
+  .gesture:nth-child(2) { transition-delay: .08s; } .gesture:nth-child(3) { transition-delay: .16s; } .gesture:nth-child(4) { transition-delay: .24s; }
+  @media (max-width: 700px) { .gestures { grid-template-columns: 1fr 1fr; } }
+
+  /* videos settle into place; quotes light up word by word */
+  .wide.reveal .frame { transform: scale(.94); transition: transform 1.2s var(--ease-spring); }
+  .wide.reveal.in .frame { transform: none; }
+  .quote .w { opacity: .16; transition: opacity .25s var(--ease); }
+  .quote .w.lit { opacity: 1; }
 
   /* ---------- diagram: gates ---------- */
   .gates { display: grid; gap: 10px; margin-top: 14px; }
   .gate { display: grid; grid-template-columns: 22px 1fr; gap: 14px; align-items: start; background: #fff; border: 1px solid var(--card-edge); border-radius: 10px; padding: 14px 16px; transition: border-color .4s, box-shadow .4s; }
-  .gate .n { font: 500 10px/22px var(--mono); color: var(--ink4); text-align: center; border-radius: 50%; border: 1px solid var(--line); height: 22px; transition: all .4s; }
+  .gate .n { font: 500 10px/22px var(--mono); color: var(--ink4); text-align: center; border-radius: 6px; border: 1px solid var(--line); height: 22px; transition: all .4s; }
   .gate .was { font: 400 15px/1.4 var(--sans); color: var(--ink); position: relative; display: inline-block; }
   .gate .was::after { content: ""; position: absolute; left: 0; top: 52%; height: 1.5px; width: 0; background: var(--accent); transition: width .6s var(--ease); }
   .gate .now { font: 400 13px/1.5 var(--sans); color: var(--ink3); margin-top: 4px; opacity: 0; transform: translateY(-4px); transition: opacity .5s .25s, transform .5s .25s; }
@@ -175,10 +211,10 @@
   .node.result .t { color: var(--ok); }
   .node.result .count { font: 700 34px/1 var(--display); letter-spacing: -.04em; color: var(--ink); }
   .wire { position: relative; height: 2px; background: var(--line); margin: 0 4px; overflow: visible; }
-  .wire span { position: absolute; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: flow 1.6s linear infinite; }
+  .wire span { position: absolute; top: 0; width: 16px; height: 2px; border-radius: 1px; background: var(--accent); animation: flow 1.6s linear infinite; }
   .wire span:nth-child(2) { animation-delay: .53s; }
   .wire span:nth-child(3) { animation-delay: 1.06s; }
-  @keyframes flow { from { left: -4px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { left: calc(100% - 4px); opacity: 0; } }
+  @keyframes flow { from { left: -4px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { left: calc(100% - 16px); opacity: 0; } }
   .paused .wire span { animation-play-state: paused; }
   @media (max-width: 620px) { .pipe { grid-template-columns: 1fr; gap: 10px; } .wire { height: 22px; width: 2px; margin: 0 auto; } .wire span { display: none; } }
 
@@ -218,12 +254,17 @@
     .reveal { opacity: 1; transform: none; transition: none; }
     .bar, .gate *, .gate, .badge, .state { transition: none !important; }
     .wire span { animation: none; display: none; }
+    .hero { height: auto; } .hero-stage { position: relative; height: auto; } .hero-frame { height: auto; max-height: none; aspect-ratio: 16 / 9; }
+    .hero-cue i { animation: none; }
+    .wide.reveal .frame { transform: none; transition: none; }
+    .quote .w { opacity: 1; transition: none; }
   }
 </style>
 </head>
 <body>
 <a class="skip" href="#overview">Skip to content</a>
 
+<div class="progress" aria-hidden="true"></div>
 <div class="pill" aria-hidden="true"><span id="pill-num">01</span> · <b id="pill-name">Overview</b></div>
 
 <nav class="toc" aria-label="Case study sections">
@@ -237,9 +278,19 @@
   <a href="#performance">Performance</a>
   <a href="#tests">Testing</a>
   <a href="#worked">How I worked</a>
-  <a href="#experiments">More experiments</a>
+  <a href="#experiments">Other experiments</a>
   <a href="#next">What's next</a>
 </nav>
+
+<header class="hero" id="top">
+  <div class="hero-stage">
+    <div class="hero-frame">
+      <video src="media/gesture-gallery/hand.mp4" poster="media/gesture-gallery/hand-poster.jpg" muted loop playsinline preload="auto" aria-label="A hand moves in front of a laptop webcam. On screen the cursor glides over the photo grid, grabs and enlarges a photo, then selects photos by pointing."></video>
+      <div class="hero-tag"><span>Recorded live</span><span>Laptop webcam</span></div>
+      <div class="hero-cue" aria-hidden="true">Scroll<i></i></div>
+    </div>
+  </div>
+</header>
 
 <main>
   <!-- 01 OVERVIEW -->
@@ -247,29 +298,28 @@
     <div class="col">
       <div class="mono">Playground · Hand gestures</div>
       <h1>Designing a hand-gesture-based photo gallery</h1>
-      <p class="lede">Point to pick, make an OK sign to grab, pull back to zoom, make a fist to scroll. Recognising a hand was the easy part. The work was everything around it: teaching the gestures in seconds, staying useful when the camera says no, and leaving the model room to run.</p>
-
-      <dl class="meta">
-        <dt>Role</dt><dd>Design and front end, solo. Built with AI assistance.</dd>
-        <dt>Stack</dt><dd>Google's MediaPipe Hands for hand tracking. HTML, CSS and JavaScript, no framework. Playwright for tests.</dd>
-        <dt>Scope</dt><dd>One file, no framework, no build step, nothing for visitors to install.</dd>
-        <dt>Status</dt><dd>Live · <a href="https://divyrajauria.github.io/gesture-gallery/">Try it with your hand →</a></dd>
-      </dl>
-
-      <div class="stat reveal" data-count="58">58</div>
-      <div class="mono">Tests drive a simulated hand through every change</div>
+      <p class="lede">A photo grid controlled by a webcam and four hand poses. Google's MediaPipe Hands returns 21 landmarks per frame. Everything downstream is custom: pose classification, cursor smoothing, a depth proxy for zoom, input-gated onboarding and a full keyboard fallback.</p>
     </div>
 
-    <figure class="wide reveal">
-      <div class="frame">
-        <video src="media/gesture-gallery/hand.mp4" poster="media/gesture-gallery/hand-poster.jpg" muted loop playsinline preload="metadata" aria-label="A hand moves in front of a laptop webcam. On screen the cursor glides over the photo grid, grabs and enlarges a photo, then selects photos by pointing."></video>
-      </div>
-      <figcaption>My hand, my laptop's webcam, no mouse: point, grab, select.</figcaption>
-    </figure>
+    <div class="wide gestures" id="gestures">
+      <figure class="gesture reveal"><svg viewBox="0 0 220 236" data-g="palm" role="img" aria-label="An open palm moving side to side."></svg><div class="g-name">Open palm</div><div class="g-does">Move the cursor</div></figure>
+      <figure class="gesture reveal"><svg viewBox="0 0 220 236" data-g="point" role="img" aria-label="A pointing index finger dipping once."></svg><div class="g-name">Point and dip</div><div class="g-does">Tap to select</div></figure>
+      <figure class="gesture reveal"><svg viewBox="0 0 220 236" data-g="ok" role="img" aria-label="An OK sign that shrinks as the hand moves away from the camera."></svg><div class="g-name">OK sign, pull back</div><div class="g-does">Grab and enlarge</div></figure>
+      <figure class="gesture reveal"><svg viewBox="0 0 220 236" data-g="fist" role="img" aria-label="A closed fist moving up and down."></svg><div class="g-name">Fist</div><div class="g-does">Drag to scroll</div></figure>
+    </div>
 
     <div class="col">
-      <p>It's a Playground piece, so the brief was mine, and I gave it one test: does it convince someone who's skimming in under a minute? Four gestures map to a familiar photo grid. An open palm moves the cursor, pointing taps, an OK sign grabs and moving your hand back enlarges it, and a fist scrolls.</p>
-      <p>Every decision below was judged against that one-minute test. That's also why some things never got built.</p>
+      <dl class="meta">
+        <dt>Role</dt><dd>Design and front end, solo. AI-assisted implementation.</dd>
+        <dt>Stack</dt><dd>MediaPipe Hands, running in the browser. Vanilla HTML, CSS and JavaScript. Playwright for end-to-end tests.</dd>
+        <dt>Scope</dt><dd>One static file. No framework, no build step, nothing to install.</dd>
+        <dt>Status</dt><dd>Live. <a href="https://divyrajauria.github.io/gesture-gallery/">Try it with your hand →</a></dd>
+      </dl>
+
+      <div class="stat reveal" data-count="59">59</div>
+      <div class="mono">End-to-end tests, driven by a simulated hand</div>
+
+      <p>A Playground piece with a self-set brief and one acceptance test: someone skimming for under a minute should get it. Every decision below was judged against that test, including what didn't get built.</p>
     </div>
   </section>
 
@@ -278,12 +328,12 @@
     <div class="col">
       <div class="mono">02</div>
       <h2>What I noticed</h2>
-      <p class="thesis">Gesture demos lose people before the first gesture.</p>
+      <p class="thesis">Every precondition is a drop-off point.</p>
       <p>Most hand-tracking demos assume a webcam, a well-lit room, and someone who already knows the moves. The person I was designing for has none of that guaranteed. They open the link between other tabs, their browser blocks the camera, and nobody has told them what a grab looks like.</p>
       <p>Each of those assumptions is a gate, and every gate is a place to lose someone. So I listed the gates first, and gave each one a fix before adding anything new.</p>
 
       <figure class="card reveal" id="gates">
-        <div class="mono">Four gates · each one got a fix</div>
+        <div class="mono">Four drop-off points, four fixes</div>
         <div class="gates">
           <div class="gate"><span class="n">1</span><div><span class="was">The camera is blocked or missing, so the page is a spinner</span><div class="now"><b>Now:</b> the gallery works from the first second, by keyboard and mouse</div></div></div>
           <div class="gate"><span class="n">2</span><div><span class="was">Nobody knows the gestures</span><div class="now"><b>Now:</b> a tour that waits until you've done each one</div></div></div>
@@ -291,7 +341,6 @@
           <div class="gate"><span class="n">4</span><div><span class="was">The page competes with the model for the processor</span><div class="now"><b>Now:</b> an idle frame costs about 2 ms instead of 14</div></div></div>
         </div>
       </figure>
-      <figcaption style="margin-top:-18px">The sections below follow these gates.</figcaption>
     </div>
   </section>
 
@@ -300,20 +349,20 @@
     <div class="col">
       <div class="mono">03</div>
       <h2>Reading the hand</h2>
-      <p class="thesis">Four poses from finger geometry, and one rule that stops accidents.</p>
-      <p>Google's MediaPipe Hands model finds 21 points on the hand in every camera frame. Everything after that is mine. Each fingertip is compared with its middle joint to tell an open palm, a pointing finger and a fist apart. A pose has to hold for about 90 ms before it counts, so the cursor doesn't flicker between modes. A tap is a quick dip of the fingertip, measured against the size of the hand, so slow drift never selects anything.</p>
+      <p class="thesis">Pose classification from landmark geometry, with one guard against false grabs.</p>
+      <p>MediaPipe Hands returns 21 landmarks per frame. The rest is mine. Each finger is classed as extended or curled by comparing its tip with its middle (PIP) joint, which yields open palm, point and fist. A new pose must persist for 90 ms before it takes over, so the mode never flickers. The cursor runs through a One-Euro filter: heavy smoothing when the hand is still, low lag when it moves. A tap is a fingertip dip, normalised to hand size, inside a 220 ms window, so slow drift never selects.</p>
     </div>
     <figure class="wide reveal">
       <div class="frame">
         <video src="media/gesture-gallery/palm.mp4" poster="media/gesture-gallery/palm-poster.jpg" muted loop playsinline preload="metadata" aria-label="An open palm moves the cursor across the photo grid; the photo under it is outlined. The camera preview shows the tracked hand."></video>
       </div>
-      <figcaption>An open palm moves the cursor. The preview, bottom right, shows what the camera tracks.</figcaption>
+      <figcaption>Open palm drives the cursor. Inset: tracked landmarks.</figcaption>
     </figure>
     <div class="col">
-      <p>The natural grab is a pinch. But a hand closing into a fist passes through a pinch on the way, so a plain pinch rule grabs photos whenever someone starts to scroll. I made the grab an OK sign instead: thumb to index, with the other three fingers up, checked on the current frame rather than the smoothed one. It's a less obvious gesture. I accepted that, because an accidental grab costs more than a gesture that takes a moment to learn.</p>
+      <p>The obvious grab is a pinch. But a hand closing into a fist passes through a pinch on the way, so a plain pinch threshold fires whenever someone starts to scroll. The grab is an OK sign instead: thumb-to-index distance under 0.55 of hand size, with the other three fingers extended, evaluated on the raw per-frame pose rather than the smoothed one. It's harder to discover. I accepted that trade, because a false grab costs more than a gesture that takes a few seconds to learn.</p>
 
       <figure class="card reveal" id="hands">
-        <div class="mono">Same thumb-to-index contact · different outcome</div>
+        <div class="mono">Same contact, different classification</div>
         <div class="hands">
           <div class="hand-panel">
             <svg viewBox="0 0 220 220" id="hand-fist" role="img" aria-label="A hand closing into a fist. Thumb and index touch on the way, but the other fingers are curled, so nothing is grabbed."></svg>
@@ -327,7 +376,7 @@
           </div>
         </div>
       </figure>
-      <figcaption style="margin-top:-18px">Three fingers up is what separates a grab from a fist.</figcaption>
+      <figcaption style="margin-top:-18px">Grab = thumb–index contact + three fingers extended.</figcaption>
 
       <figure class="code reveal">
         <div class="code-head"><span class="mono">index.html · the grab rule</span><button class="copy" type="button" aria-label="Copy the grab rule code">Copy</button></div>
@@ -340,8 +389,8 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
 }</code></pre>
       </figure>
 
-      <h3>Depth, without a depth camera</h3>
-      <p>Enlarging a photo is "move your hand back". A webcam can't measure distance, but the hand's size in the image is a good stand-in. As the hand gets smaller, the photo grows. Moving sideways drags the photo instead, so the two motions never fight.</p>
+      <h3>Depth without a depth sensor</h3>
+      <p>A webcam gives no usable z-axis, but apparent hand size falls with distance. So zoom is driven by hand size: as the hand shrinks in frame, the photo scales up through a smoothed gain. Lateral movement maps to drag, so the two axes never conflict.</p>
 
       <figure class="card reveal" id="depth">
         <div class="mono">Hand size in the image → photo scale</div>
@@ -356,7 +405,7 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
       <div class="frame">
         <video src="media/gesture-gallery/grab.mp4" poster="media/gesture-gallery/grab-poster.jpg" muted loop playsinline preload="metadata" aria-label="An OK sign grabs a photo. As the hand moves back, the photo grows; opening the fingers lets it go."></video>
       </div>
-      <figcaption>OK sign to grab, move back to enlarge, open the fingers to let go.</figcaption>
+      <figcaption>OK sign grabs. Hand size maps to scale. Open to release.</figcaption>
     </figure>
   </section>
 
@@ -365,16 +414,16 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
     <div class="col">
       <div class="mono">04</div>
       <h2>Teaching it</h2>
-      <p class="thesis">A tour that waits for you to do the thing.</p>
-      <p>On a first visit, a small card teaches the four gestures one at a time. It moves on only when the camera sees each one done, because reading about a gesture teaches far less than doing it. Back and Next let people revisit a step, and the full guide can replay the tour at any time.</p>
-      <p>My first version taught the wrong gesture. The card said "pinch, then pull back towards you", while the code waited for an OK sign moved away from the screen. I only found out by trying it with my own hand. The fix wasn't loosening the detection, which would have brought the accidental grabs back. It was teaching exactly what the code checks, with live hints based on what the camera sees.</p>
+      <p class="thesis">Onboarding gated on detected input, not on clicks.</p>
+      <p>A first-run tour teaches one gesture per step and advances only when the classifier sees it performed, because doing a gesture teaches more than reading about it. Back and Next allow revisiting, and the guide can replay the tour at any time.</p>
+      <p>My first version taught the wrong gesture: the copy said "pinch, then pull back towards you" while the classifier expected an OK sign moved away from the screen. The simulated tests passed; my own hand caught it. Loosening detection would have brought the false grabs back, so the fix was copy that matches the classifier exactly, plus live hints computed from the current pose.</p>
     </div>
 
     <figure class="wide reveal">
       <div class="frame">
         <video src="media/gesture-gallery/tour.mp4" poster="media/gesture-gallery/tour-poster.jpg" muted loop playsinline preload="metadata" aria-label="The tour's OK-sign step. A curled pinch shows the hint to keep three fingers up; moving back shows 'keep going'."></video>
       </div>
-      <figcaption>Hints come from the hand in view: "keep your other three fingers up", "now move your hand back".</figcaption>
+      <figcaption>Hints are computed from the live pose.</figcaption>
     </figure>
 
     <div class="col">
@@ -387,9 +436,9 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
     <div class="col">
       <div class="mono">05</div>
       <h2>When the camera says no</h2>
-      <p class="thesis">Every gesture has a keyboard and mouse twin.</p>
-      <p>The first build showed a full-screen spinner until hand tracking loaded. If the camera was blocked, that spinner never went away. Now the gallery works from the first second. Tracking loads in the background, and a small card says what's happening.</p>
-      <p>Each failure gets its own message and a way forward. The library I started with showed a raw browser alert for every camera error, so I request the camera directly instead.</p>
+      <p class="thesis">Graceful degradation: every gesture has a keyboard and pointer equivalent.</p>
+      <p>The first build blocked on a full-screen spinner until tracking loaded; with the camera denied, it blocked forever. Now the grid is interactive on first paint, the model loads in the background, and a status card reports state.</p>
+      <p>Each getUserMedia failure (NotAllowedError, NotFoundError, NotReadableError) maps to its own message and recovery path. The camera helper library surfaced raw browser alerts, so I call getUserMedia directly.</p>
 
       <figure class="card reveal" id="states">
         <div class="mono">What the status card says</div>
@@ -403,14 +452,14 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
         </div>
       </figure>
 
-      <p>Underneath, the grid is a multi-select listbox with one Tab stop. Arrow keys move, Space selects, Enter enlarges, Esc closes, and selections are announced to screen readers. Reduced-motion settings remove decorative animation but keep hand-driven movement, because for this piece the movement is the interface.</p>
+      <p>The grid is an ARIA multi-select listbox with a roving tabindex, so it's a single Tab stop. Arrows move, Space toggles, Enter enlarges, Esc closes, and selection changes go to a live region. prefers-reduced-motion removes decorative motion but keeps hand-driven movement, because here movement is the interface.</p>
     </div>
 
     <figure class="wide reveal">
       <div class="frame">
         <video src="media/gesture-gallery/keyboard.mp4" poster="media/gesture-gallery/keyboard-poster.jpg" muted loop playsinline preload="metadata" aria-label="With the camera refused, the status card offers keyboard and mouse. Arrow keys move, Space selects three photos, Enter enlarges one."></video>
       </div>
-      <figcaption>Camera refused: the same gallery by keyboard.</figcaption>
+      <figcaption>Camera denied. Same grid, keyboard only.</figcaption>
     </figure>
   </section>
 
@@ -419,16 +468,16 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
     <div class="col">
       <div class="mono">06</div>
       <h2>Selection that goes somewhere</h2>
-      <p class="thesis">Point, tap, remove, undo.</p>
-      <p>Selecting photos used to be a dead end: "3 Selected", then nothing. Now a Remove and Clear bar appears, and an Undo follows every removal. Nothing is really deleted, so it's a safe action to try.</p>
-      <p>I didn't add a gesture for it. The tap now presses any button under the cursor, and a button lights up when the hand is over it. The buttons are 36 px tall because a hand cursor wobbles more than a mouse, and the header saves room for the bar so the grid doesn't jump when it appears.</p>
+      <p class="thesis">One input primitive for content and controls.</p>
+      <p>Selection used to dead-end at "3 Selected". It now raises a Remove and Clear bar, and every removal gets an Undo. Removal is soft (tiles are hidden, not deleted), so it's safe to try.</p>
+      <p>No new gesture: the tap dispatches to whatever control is under the cursor, with a hover state when the hand is over it. Targets are 36 px tall to absorb cursor jitter, and the header reserves the bar's space, so the grid never shifts when it appears.</p>
     </div>
 
     <figure class="wide reveal">
       <div class="frame">
         <video src="media/gesture-gallery/select.mp4" poster="media/gesture-gallery/select-poster.jpg" muted loop playsinline preload="metadata" aria-label="Pointing and tapping selects three photos. Tapping Remove takes them out of the grid; tapping Undo brings them back."></video>
       </div>
-      <figcaption>Same tap for photos and buttons. No new gesture to learn.</figcaption>
+      <figcaption>One tap for tiles and buttons.</figcaption>
     </figure>
   </section>
 
@@ -437,12 +486,12 @@ if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose ==
     <div class="col">
       <div class="mono">07</div>
       <h2>Light on the machine</h2>
-      <p class="thesis">Leaving room for the model.</p>
-      <p>Hand tracking needs a large share of each 33 ms frame. I measured what the page itself was costing, with the processor slowed four times to stand in for an average laptop. With nobody touching it, the page was spending about 14 ms per frame on nothing.</p>
-      <p>The causes were small and invisible. A loading spinner kept animating after its card was hidden, which forced a repaint every frame. All 200 photos were promoted to their own layers, so each repaint touched every one. The hover check measured every tile instead of asking the browser once. And the model ran on every screen refresh, about 60 times a second, though a webcam only delivers about 30 frames.</p>
+      <p class="thesis">Frame budget: give the model the headroom.</p>
+      <p>At 30 fps each frame has 33 ms, and inference takes a large share of it. I profiled the page's own cost under 4× CPU throttling, as a proxy for an average laptop. Idle, it was spending about 14 ms per frame on nothing.</p>
+      <p>Four causes, none visible. A hidden spinner kept animating and forced a repaint every frame. All 200 tiles were layer-promoted with will-change, so each repaint touched every layer. Hover hit-testing measured every tile instead of one elementFromPoint call. And inference ran on every requestAnimationFrame (about 60 Hz) though the webcam delivers about 30 fps.</p>
 
       <figure class="card reveal" id="budget">
-        <div class="mono">Page's own work per frame · 4× CPU slowdown · model not included</div>
+        <div class="mono">Page cost per frame, 4× CPU throttle, inference excluded</div>
         <div class="budget">
           <div class="row"><div class="k"><span>No hand in view</span><span>of a 33 ms frame</span></div>
             <div class="track"><div class="bar before" data-ms="14">14 ms</div></div>
@@ -465,7 +514,7 @@ if (video.readyState &gt;= 2 &amp;&amp; video.currentTime !== lastVideoTime) {
 requestAnimationFrame(frameLoop);</code></pre>
       </figure>
 
-      <p>Switching tabs now releases the camera, so its light goes off, and it reconnects quietly when you come back. I checked that one in a real browser window with real tabs, because the testing tool keeps every page "visible" and couldn't prove it.</p>
+      <p>On visibilitychange the camera track is stopped, so the hardware light goes off, and it reconnects on return. I verified that in a headed browser, because headless test runs never report a page as hidden.</p>
       <p class="quote reveal">Idle should cost nothing. Most of the fixes were deleting work.</p>
     </div>
   </section>
@@ -475,12 +524,12 @@ requestAnimationFrame(frameLoop);</code></pre>
     <div class="col">
       <div class="mono">08</div>
       <h2>Proving it without a webcam</h2>
-      <p class="thesis">58 tests move a simulated hand through the real page.</p>
-      <p>A test server can't wave at a camera. So the tests swap the tracking model for a stand-in that feeds hand positions frame by frame, and the page's own gesture code runs exactly as it would with a real hand. They cover every gesture, keyboard and mouse, every camera failure, the tour and its hints, Remove and Undo, the offline photo fallback, and reduced motion.</p>
-      <p>To check the tests were real, I deliberately broke the OK-sign rule. The matching test failed straight away. They now run on every pull request, and a change that breaks a gesture can't reach the live site unnoticed.</p>
+      <p class="thesis">59 deterministic end-to-end tests, driven by synthetic landmarks.</p>
+      <p>CI has no webcam. The tests replace the MediaPipe script with a stub and inject 21-landmark hands frame by frame at webcam cadence, so the page's real gesture code runs unmodified. Coverage: every gesture, keyboard and mouse, each camera failure, the tour and its hints, Remove and Undo, the offline photo fallback and reduced motion.</p>
+      <p>To prove the suite catches regressions, I broke the OK-sign rule on purpose; the matching test failed immediately. GitHub Actions runs the suite on every pull request, so a broken gesture can't reach the live site unnoticed.</p>
 
       <figure class="code reveal">
-        <div class="code-head"><span class="mono">tests/gestures.spec.js · one of the 58</span><button class="copy" type="button" aria-label="Copy the test code">Copy</button></div>
+        <div class="code-head"><span class="mono">tests/gestures.spec.js · one of the 59</span><button class="copy" type="button" aria-label="Copy the test code">Copy</button></div>
 <pre><code>test('a curled-finger pinch does not grab', async ({ page }) =&gt; {
   // hand(x, y, pose, options) builds the 21 points MediaPipe would report
   await hold(page, hand(0.5, 0.5, 'POINTING', { pinch: true }), 10);
@@ -495,7 +544,7 @@ requestAnimationFrame(frameLoop);</code></pre>
           <div class="wire" aria-hidden="true"><span></span><span></span><span></span></div>
           <div class="node"><div class="mono">Unchanged</div><div class="t">The real page</div><div class="d">Same gesture code, same file visitors get</div></div>
           <div class="wire" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div class="node result"><div class="mono">Every pull request</div><div class="count" data-count="58">58</div><div class="t">checks pass</div></div>
+          <div class="node result"><div class="mono">Every pull request</div><div class="count" data-count="59">59</div><div class="t">checks pass</div></div>
         </div>
       </figure>
     </div>
@@ -507,7 +556,7 @@ requestAnimationFrame(frameLoop);</code></pre>
       <div class="mono">09</div>
       <h2>How I worked</h2>
       <p class="thesis">I set the direction, an AI pair wrote much of the code, and my own hand was the final test.</p>
-      <p>I worked one change at a time. Each one was proposed, built on a branch, checked against the test suite, and tried on my own camera before it went live. The simulations caught most problems. My hand caught the one they couldn't: a tour teaching a different gesture from the one the code checked for.</p>
+      <p>One change per branch: proposed, implemented, run against the suite, then tried on my own camera before merging to main, which deploys to GitHub Pages. The simulations caught most problems. My hand caught the one they couldn't: a tour teaching a different gesture from the one the code checked for.</p>
       <p>Scope came from the one-minute test. A calibration indicator ("too close, too far") was on the list, and I dropped it, because the tour's live hints already cover the main confusion. Mobile support and new gestures stayed out for the same reason: neither changes how someone skimming judges the piece.</p>
     </div>
 
@@ -515,7 +564,7 @@ requestAnimationFrame(frameLoop);</code></pre>
       <div class="frame">
         <video src="media/gesture-gallery/scroll.mp4" poster="media/gesture-gallery/scroll-poster.jpg" muted loop playsinline preload="metadata" aria-label="A closed fist grabs the grid and drags it up to scroll."></video>
       </div>
-      <figcaption>A fist grabs the grid and drags it.</figcaption>
+      <figcaption>Fist drags the grid. Open palm releases.</figcaption>
     </figure>
   </section>
 
@@ -612,6 +661,7 @@ requestAnimationFrame(frameLoop);</code></pre>
   sections.forEach((s) => spy.observe(s));
 
   /* ---------- reveal on scroll ---------- */
+  document.querySelectorAll('section h2, section .thesis').forEach((el) => el.classList.add('reveal'));
   const reveals = document.querySelectorAll('.reveal');
   if (reduce) reveals.forEach((el) => el.classList.add('in'));
   else {
@@ -709,12 +759,12 @@ requestAnimationFrame(frameLoop);</code></pre>
   }
 
   const TONES = {
-    ink: { line: '#121110', fill: 'rgba(18,17,16,.075)' },
+    ink: { line: '#121110', fill: 'rgba(18,17,16,.1)' },
     grey: { line: 'rgba(18,17,16,.42)', fill: 'rgba(18,17,16,.05)' },
-    orange: { line: '#ff4400', fill: 'rgba(255,68,0,.13)' },
+    orange: { line: '#ff4400', fill: 'rgba(255,68,0,.16)' },
   };
-  function drawHand(svg, P, toneName, scale = 1) {
-    const tone = TONES[toneName];
+  function drawHand(svg, P, toneName, scale = 1, solid = false) {
+    const tone = solid ? { fill: TONES[toneName].line } : TONES[toneName];
     const pt = (i) => P[i][0].toFixed(1) + ',' + P[i][1].toFixed(1);
     // Palm outline: knuckles across the top, an even margin down both sides to the wrist.
     const off = (i, dx, dy) => (P[i][0] + dx * scale).toFixed(1) + ',' + (P[i][1] + dy * scale).toFixed(1);
@@ -727,9 +777,7 @@ requestAnimationFrame(frameLoop);</code></pre>
     skin += `<polyline points="${pt(1)} ${pt(2)} ${pt(3)} ${pt(4)}" fill="none" stroke="${tone.fill}" stroke-width="${14 * scale}" stroke-linecap="round" stroke-linejoin="round" />`;
     let bones = '';
     for (const [a, b] of BONES) bones += `<line x1="${P[a][0].toFixed(1)}" y1="${P[a][1].toFixed(1)}" x2="${P[b][0].toFixed(1)}" y2="${P[b][1].toFixed(1)}" />`;
-    let joints = '';
-    P.forEach((p) => { joints += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${3.3 * scale}" fill="${tone.line}" /><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${1.3 * scale}" fill="#fff" />`; });
-    svg.innerHTML = `<g>${skin}</g><g stroke="${tone.line}" stroke-width="${2.2 * scale}" stroke-linecap="round">${bones}</g><g>${joints}</g>`;
+    svg.innerHTML = solid ? `<g>${skin}</g>` : `<g>${skin}</g><g stroke="${tone.line}" stroke-width="${2.4 * scale}" stroke-linecap="round">${bones}</g>`;
   }
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);   // ease-in-out cubic
   const mix = (a, b, t) => a + (b - a) * t;
@@ -765,7 +813,8 @@ requestAnimationFrame(frameLoop);</code></pre>
     const a = keys[i], b = keys[(i + 1) % keys.length], hold = a.ms * 0.45;
     const m = tt < hold ? 0 : ease((tt - hold) / (a.ms - hold));
     const c = {}; for (const f in a.c) c[f] = mix(a.c[f], b.c[f], m);
-    return { c, p: mix(a.p, b.p, m), key: m < 0.5 ? a : b };
+    const num = (k, f, d) => (k[f] === undefined ? d : k[f]);
+    return { c, p: mix(a.p, b.p, m), dx: mix(num(a, 'dx', 0), num(b, 'dx', 0), m), dy: mix(num(a, 'dy', 0), num(b, 'dy', 0), m), s: mix(num(a, 's', 1), num(b, 's', 1), m), key: m < 0.5 ? a : b };
   }
   function renderPanels(t) {
     panels.forEach((pn) => {
@@ -783,6 +832,65 @@ requestAnimationFrame(frameLoop);</code></pre>
     const loop = (ts) => { if (!t0) t0 = ts; renderPanels(ts - t0); raf = requestAnimationFrame(loop); };
     renderPanels(0);
     whileVisible(fig, () => { if (!raf) raf = requestAnimationFrame(loop); }, () => { cancelAnimationFrame(raf); raf = 0; });
+  })();
+
+  /* ---------- 01 the four gestures ---------- */
+  (function () {
+    const POINT = { index: 0, middle: 1, ring: 1, pinky: 1 };
+    const DIP = { index: 0.42, middle: 1, ring: 1, pinky: 1 };
+    const G = {
+      palm: [{ c: OPEN, p: 0, ms: 1300, dx: -18, color: INK }, { c: OPEN, p: 0, ms: 1300, dx: 18, dy: -6, color: INK }],
+      point: [{ c: POINT, p: 0.12, ms: 1100, color: INK }, { c: DIP, p: 0.12, ms: 520, color: ORANGE }],
+      ok: [{ c: OPEN, p: 0, ms: 1100, color: INK }, { c: OKC, p: 1, ms: 1000, color: ORANGE }, { c: OKC, p: 1, ms: 1300, s: 0.66, color: ORANGE }],
+      fist: [{ c: FIST, p: 0.55, ms: 1200, dy: 22, color: INK }, { c: FIST, p: 0.55, ms: 1200, dy: -22, color: INK }],
+    };
+    const svgs = [...document.querySelectorAll('#gestures svg')];
+    const draw = (t) => svgs.forEach((svg) => {
+      const st = poseAt(G[svg.dataset.g], t), sc = 0.86 * st.s;
+      drawHand(svg, handPoints(st.c, st.p, sc, 110 + st.dx, 122 + st.dy), st.key.color, sc, true);
+    });
+    if (reduce) { svgs.forEach((svg) => { const k = G[svg.dataset.g][1]; drawHand(svg, handPoints(k.c, k.p, 0.86, 110, 122), k.color, 0.86, true); }); return; }
+    let raf = 0, t0 = 0;
+    const loop = (ts) => { if (!t0) t0 = ts; draw(ts - t0); raf = requestAnimationFrame(loop); };
+    draw(0);
+    whileVisible(document.getElementById('gestures'), () => { if (!raf) raf = requestAnimationFrame(loop); }, () => { cancelAnimationFrame(raf); raf = 0; });
+  })();
+
+  /* ---------- scroll: progress bar, hero settle, quotes lighting up ---------- */
+  (function () {
+    const bar = document.querySelector('.progress');
+    const hero = document.querySelector('.hero');
+    const frame = hero.querySelector('.hero-frame');
+    const cue = hero.querySelector('.hero-cue');
+    const wide = matchMedia('(min-width: 701px)');
+    const quotes = [...document.querySelectorAll('.quote')].map((q) => {
+      q.innerHTML = q.textContent.trim().split(/\s+/).map((w) => `<span class="w">${w}</span>`).join(' ');
+      return { q, words: [...q.querySelectorAll('.w')] };
+    });
+    if (reduce) quotes.forEach(({ words }) => words.forEach((w) => w.classList.add('lit')));
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    let queued = false;
+    function update() {
+      queued = false;
+      const vh = innerHeight, doc = document.documentElement;
+      bar.style.transform = `scaleX(${clamp(scrollY / (doc.scrollHeight - vh)).toFixed(4)})`;
+      const r = hero.getBoundingClientRect();
+      document.body.classList.toggle('in-hero', r.bottom > vh * 0.55);
+      if (!reduce && wide.matches) {
+        const k = ease(clamp(-r.top / Math.max(1, hero.offsetHeight - vh)));
+        frame.style.transform = `scale(${(1 - 0.3 * k).toFixed(4)})`;
+        cue.style.opacity = (1 - k * 3).toFixed(3);
+      } else frame.style.transform = '';
+      if (!reduce) quotes.forEach(({ q, words }) => {
+        const top = q.getBoundingClientRect().top;
+        const lit = Math.round(clamp((vh * 0.88 - top) / (vh * 0.4)) * words.length);
+        words.forEach((w, i) => w.classList.toggle('lit', i < lit));
+      });
+    }
+    const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', onScroll);
+    update();
   })();
 
   /* ---------- 03 depth: smaller hand, bigger photo ---------- */
