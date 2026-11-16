@@ -141,7 +141,7 @@
   .depth .readout { position: absolute; left: 12px; bottom: 10px; font: 400 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); }
   .depth .readout b { color: var(--ink); font-weight: 500; }
   .depth .cam { position: absolute; top: 10px; left: 12px; font: 400 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink4); }
-  .depth .tile { width: 46px; height: 46px; border-radius: 6px; background: linear-gradient(135deg, #b48ad1, #6b4f99); box-shadow: 0 18px 40px -16px rgba(60, 30, 90, .6); }
+  .depth .tile { width: 46px; height: 46px; border-radius: 6px; background: #2a2a2c url("media/gesture-gallery/photo-sample.jpg") center / cover; box-shadow: 0 18px 40px -16px rgba(18, 17, 16, .55); }
 
   /* ---------- diagram: camera states ---------- */
   .states { margin-top: 14px; border: 1px solid var(--card-edge); border-radius: 10px; background: #fff; overflow: hidden; }
@@ -649,66 +649,90 @@ requestAnimationFrame(frameLoop);</code></pre>
     whileVisible(fig, () => { if (!timer) { tick(); timer = setInterval(tick, 1500); } }, () => { clearInterval(timer); timer = null; });
   })();
 
-  /* ---------- 03 hands: skeletons drawn from landmark-style points ---------- */
+  /* ---------- 03 hands: a front-view hand, drawn like the tracker sees it ---------- */
+  // Base geometry in a 220×220 box: palm facing the camera, fingers up.
+  // Curling folds a finger toward the camera (front view), the way a real fist closes.
   const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-  // curl: 0 = finger straight up, 1 = fully curled. pinch: 0..1 thumb tip travels to index tip.
-  function handPoints(c, pinch, size = 1, cx = 110, cy = 120) {
-    const s = 70 * size, P = [];
-    const wrist = [cx, cy + s * 0.95];
-    P[0] = wrist;
-    const xs = [-0.42, -0.14, 0.14, 0.4];
-    const knuckle = [0.02, -0.04, -0.01, 0.06];   // middle knuckle sits highest, little finger lowest
-    const fingerLen = [0.62, 0.7, 0.66, 0.52];
+  const FINGERS = [
+    { mcp: [80, 110], spread: -7, len: [33, 21, 17], w: 13 },   // index
+    { mcp: [101, 103], spread: -1, len: [37, 24, 18], w: 14 },  // middle
+    { mcp: [121, 107], spread: 5, len: [34, 22, 17], w: 13 },   // ring
+    { mcp: [139, 117], spread: 12, len: [26, 17, 14], w: 11 },  // little
+  ];
+  const FLEX = [1.5, 1.7, 1.1];                         // radians each joint bends at full curl
+  const THUMB_OPEN = [[84, 184], [62, 160], [50, 137], [44, 116]];
+  const lerp2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+  // c: curl per finger (0 straight … 1 fist). pinch: thumb tip travels to the index tip (0 … 1).
+  function handPoints(c, pinch, scale = 1, ox = 110, oy = 112) {
+    const P = [];
+    P[0] = [110, 198];
     const curls = [c.index, c.middle, c.ring, c.pinky];
-    for (let f = 0; f < 4; f++) {
-      const bx = cx + xs[f] * s, by = cy + (knuckle[f] - 0.05) * s;
-      const L = fingerLen[f] * s, k = curls[f];
-      const seg = [0, 0.42, 0.72, 1].map((d) => d * L);
-      const pts = [[bx, by]];
-      let ang = -Math.PI / 2, x = bx, y = by;
-      for (let j = 1; j < 4; j++) {
-        ang += k * 1.5;                        // each joint bends further when curled
-        const len = seg[j] - seg[j - 1];
-        x += Math.cos(ang) * len; y += Math.sin(ang) * len;
-        pts.push([x, y]);
+    FINGERS.forEach((f, i) => {
+      const k = curls[i], spread = (f.spread * (1 - 0.8 * k)) * Math.PI / 180;
+      let [x, y] = f.mcp, phi = 0;
+      P[5 + i * 4] = [x, y];
+      for (let j = 0; j < 3; j++) {
+        phi += k * FLEX[j];
+        const L = f.len[j];
+        x += Math.sin(spread) * Math.cos(phi) * L;
+        y += -Math.cos(phi) * L + Math.sin(phi) * L * 0.12;   // slight drop as a segment points at the camera
+        P[5 + i * 4 + j + 1] = [x, y];
       }
-      pts.forEach((p, j) => { P[5 + f * 4 + j] = p; });
-    }
-    // thumb
-    const t1 = [cx - 0.52 * s, cy + 0.62 * s], t2 = [cx - 0.82 * s, cy + 0.32 * s], t3 = [cx - 0.98 * s, cy + 0.02 * s];
-    const tipOpen = [cx - 1.08 * s, cy - 0.26 * s];
+    });
     const tip = P[8];
-    const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    P[1] = t1; P[2] = t2; P[3] = lerp(t3, lerp(t3, tip, 0.55), pinch); P[4] = lerp(tipOpen, tip, pinch);
-    return P;
+    const mcp = lerp2(THUMB_OPEN[1], [72, 152], pinch * 0.6);
+    const ipTarget = lerp2(mcp, tip, 0.55);
+    P[1] = THUMB_OPEN[0];
+    P[2] = mcp;
+    P[3] = lerp2(THUMB_OPEN[2], [ipTarget[0] - 6, ipTarget[1] + 4], pinch);
+    P[4] = lerp2(THUMB_OPEN[3], [tip[0] - 1.5, tip[1] + 1.5], pinch);
+    // place and scale around the hand's centre
+    return P.map(([x, y]) => [ox + (x - 110) * scale, oy + (y - 112) * scale]);
   }
-  function drawHand(svg, P, color) {
-    let out = '';
-    for (const [a, b] of BONES) out += `<line x1="${P[a][0].toFixed(1)}" y1="${P[a][1].toFixed(1)}" x2="${P[b][0].toFixed(1)}" y2="${P[b][1].toFixed(1)}" />`;
-    let dots = '';
-    P.forEach((p) => { dots += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4" />`; });
-    const palm = [0, 1, 5, 9, 13, 17].map((i) => P[i][0].toFixed(1) + ',' + P[i][1].toFixed(1)).join(' ');
-    svg.innerHTML = `<polygon points="${palm}" fill="${color}" fill-opacity=".08" stroke="none" /><g stroke="${color}" stroke-width="3.2" stroke-linecap="round">${out}</g><g fill="${color}">${dots}</g>`;
+
+  const TONES = {
+    ink: { line: '#121110', fill: 'rgba(18,17,16,.075)' },
+    grey: { line: 'rgba(18,17,16,.42)', fill: 'rgba(18,17,16,.05)' },
+    orange: { line: '#ff4400', fill: 'rgba(255,68,0,.13)' },
+  };
+  function drawHand(svg, P, toneName, scale = 1) {
+    const tone = TONES[toneName];
+    const pt = (i) => P[i][0].toFixed(1) + ',' + P[i][1].toFixed(1);
+    // Palm outline: knuckles across the top, an even margin down both sides to the wrist.
+    const off = (i, dx, dy) => (P[i][0] + dx * scale).toFixed(1) + ',' + (P[i][1] + dy * scale).toFixed(1);
+    const palm = [pt(2), pt(5), pt(9), pt(13), pt(17), off(17, -2, 34), off(0, 14, -6), off(0, -14, -6), pt(1)].join(' ');
+    let skin = `<polygon points="${palm}" fill="${tone.fill}" stroke="${tone.fill}" stroke-width="${12 * scale}" stroke-linejoin="round" />`;
+    FINGERS.forEach((f, i) => {
+      const b = 5 + i * 4;
+      skin += `<polyline points="${pt(b)} ${pt(b + 1)} ${pt(b + 2)} ${pt(b + 3)}" fill="none" stroke="${tone.fill}" stroke-width="${f.w * scale}" stroke-linecap="round" stroke-linejoin="round" />`;
+    });
+    skin += `<polyline points="${pt(1)} ${pt(2)} ${pt(3)} ${pt(4)}" fill="none" stroke="${tone.fill}" stroke-width="${14 * scale}" stroke-linecap="round" stroke-linejoin="round" />`;
+    let bones = '';
+    for (const [a, b] of BONES) bones += `<line x1="${P[a][0].toFixed(1)}" y1="${P[a][1].toFixed(1)}" x2="${P[b][0].toFixed(1)}" y2="${P[b][1].toFixed(1)}" />`;
+    let joints = '';
+    P.forEach((p) => { joints += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${3.3 * scale}" fill="${tone.line}" /><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${1.3 * scale}" fill="#fff" />`; });
+    svg.innerHTML = `<g>${skin}</g><g stroke="${tone.line}" stroke-width="${2.2 * scale}" stroke-linecap="round">${bones}</g><g>${joints}</g>`;
   }
-  const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);   // ease-in-out cubic
   const mix = (a, b, t) => a + (b - a) * t;
-  const INK = '#121110', ORANGE = '#ff4400', GREY = 'rgba(18,17,16,.35)';
+  const INK = 'ink', ORANGE = 'orange', GREY = 'grey';
 
   // Each panel: a list of keyframes { c: curls, p: pinch, ms, label, badge }
   const OPEN = { index: 0, middle: 0, ring: 0, pinky: 0 };
   const FIST = { index: 1, middle: 1, ring: 1, pinky: 1 };
-  const HALF = { index: 0.45, middle: 0.75, ring: 0.8, pinky: 0.85 };
-  const OKC = { index: 0.42, middle: 0, ring: 0.02, pinky: 0.04 };
+  const HALF = { index: 0.5, middle: 0.62, ring: 0.68, pinky: 0.74 };
+  const OKC = { index: 0.55, middle: 0.04, ring: 0.06, pinky: 0.08 };
   const panels = [
     { svg: document.getElementById('hand-fist'), keys: [
-      { c: OPEN, p: 0, ms: 900, label: 'Open palm', badge: ['Watching', ''], color: INK },
-      { c: HALF, p: 0.95, ms: 900, label: 'Thumb meets index, other fingers curling', badge: ['Ignored', 'ignored'], color: GREY },
-      { c: FIST, p: 0.6, ms: 900, label: 'Fist: scroll the grid', badge: ['Scroll', 'ignored'], color: INK },
+      { c: OPEN, p: 0, ms: 1500, label: 'Open palm', badge: ['Watching', ''], color: INK },
+      { c: HALF, p: 0.95, ms: 1500, label: 'Thumb meets index, other fingers curling', badge: ['Ignored', 'ignored'], color: GREY },
+      { c: FIST, p: 0.55, ms: 1500, label: 'Fist: scroll the grid', badge: ['Scroll', 'ignored'], color: INK },
     ] },
     { svg: document.getElementById('hand-ok'), keys: [
-      { c: OPEN, p: 0, ms: 900, label: 'Open palm', badge: ['Watching', ''], color: INK },
-      { c: OKC, p: 1, ms: 900, label: 'OK sign: three fingers stay up', badge: ['Grab', 'grab'], color: ORANGE },
-      { c: OKC, p: 1, ms: 900, label: 'OK sign: three fingers stay up', badge: ['Grab', 'grab'], color: ORANGE },
+      { c: OPEN, p: 0, ms: 1500, label: 'Open palm', badge: ['Watching', ''], color: INK },
+      { c: OKC, p: 1, ms: 1500, label: 'OK sign: three fingers stay up', badge: ['Grab', 'grab'], color: ORANGE },
+      { c: OKC, p: 1, ms: 1500, label: 'OK sign: three fingers stay up', badge: ['Grab', 'grab'], color: ORANGE },
     ] },
   ];
   panels.forEach((pn) => {
@@ -721,7 +745,7 @@ requestAnimationFrame(frameLoop);</code></pre>
     const total = keys.reduce((s, k) => s + k.ms, 0);
     let tt = t % total, i = 0;
     while (tt > keys[i].ms) { tt -= keys[i].ms; i++; }
-    const a = keys[i], b = keys[(i + 1) % keys.length], hold = a.ms * 0.55;
+    const a = keys[i], b = keys[(i + 1) % keys.length], hold = a.ms * 0.45;
     const m = tt < hold ? 0 : ease((tt - hold) / (a.ms - hold));
     const c = {}; for (const f in a.c) c[f] = mix(a.c[f], b.c[f], m);
     return { c, p: mix(a.p, b.p, m), key: m < 0.5 ? a : b };
@@ -751,11 +775,12 @@ requestAnimationFrame(frameLoop);</code></pre>
     const tile = fig.querySelector('[data-tile]');
     const sizeEl = fig.querySelector('[data-size]');
     const scaleEl = fig.querySelector('[data-scale]');
-    const OKP = { index: 0.42, middle: 0, ring: 0.02, pinky: 0.04 };
+    const OKP = { index: 0.55, middle: 0.04, ring: 0.06, pinky: 0.08 };
     function frame(k) {                // k: 0 = hand close, 1 = hand moved back
       const size = mix(1, 0.56, k);
-      const P = handPoints(OKP, 1, size * 0.62, 60, 62);
-      drawHand(svg, P, ORANGE);
+      const sc = size * 0.52;
+      const P = handPoints(OKP, 1, sc, 60, 62);
+      drawHand(svg, P, ORANGE, sc);
       const scale = mix(1, 2.7, k);
       tile.style.transform = `scale(${scale.toFixed(3)})`;
       sizeEl.textContent = Math.round(size * 100) + '%';
