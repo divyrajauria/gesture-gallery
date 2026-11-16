@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hand gesture photo gallery · Divy Rajauria</title>
-<meta name="description" content="Designing a photo gallery you browse with hand gestures, and that still works without a camera.">
+<meta name="description" content="Designing a hand-gesture-based photo gallery, built on MediaPipe Hands in one HTML file.">
 <style>
   /* Fonts are self-hosted on divy.work; the absolute URL is a fallback for previewing this file elsewhere. */
   @font-face { font-family: Satoshi; font-weight: 400; font-display: swap; src: url("/fonts/satoshi-400.woff2") format("woff2"), url("https://divy.work/fonts/satoshi-400.woff2") format("woff2"); }
@@ -241,13 +241,13 @@
   <!-- 01 OVERVIEW -->
   <section id="overview" data-num="01" data-name="Overview" style="padding-top:0">
     <div class="col">
-      <div class="mono">Playground · Gesture Gallery</div>
-      <h1>Designing a photo gallery you browse with hand gestures, and that still works without a camera.</h1>
+      <div class="mono">Playground · Hand gestures</div>
+      <h1>Designing a hand-gesture-based photo gallery</h1>
       <p class="lede">Point to pick, make an OK sign to grab, pull back to zoom, make a fist to scroll. Recognising a hand was the easy part. The work was everything around it: teaching the gestures in seconds, staying useful when the camera says no, and leaving the model room to run.</p>
 
       <dl class="meta">
         <dt>Role</dt><dd>Design and front end, solo. Built with AI assistance.</dd>
-        <dt>Stack</dt><dd>HTML, CSS and JavaScript. MediaPipe Hands for tracking. Playwright for tests.</dd>
+        <dt>Stack</dt><dd>Google's MediaPipe Hands for hand tracking. HTML, CSS and JavaScript, no framework. Playwright for tests.</dd>
         <dt>Scope</dt><dd>One file, no framework, no build step, nothing for visitors to install.</dd>
         <dt>Status</dt><dd>Live · <a href="https://divyrajauria.github.io/gesture-gallery/">Try it with your hand →</a></dd>
       </dl>
@@ -297,7 +297,7 @@
       <div class="mono">03</div>
       <h2>Reading the hand</h2>
       <p class="thesis">Four poses from finger geometry, and one rule that stops accidents.</p>
-      <p>MediaPipe gives 21 points on the hand in every camera frame. Everything after that is mine. Each fingertip is compared with its middle joint to tell an open palm, a pointing finger and a fist apart. A pose has to hold for about 90 ms before it counts, so the cursor doesn't flicker between modes. A tap is a quick dip of the fingertip, measured against the size of the hand, so slow drift never selects anything.</p>
+      <p>Google's MediaPipe Hands model finds 21 points on the hand in every camera frame. Everything after that is mine. Each fingertip is compared with its middle joint to tell an open palm, a pointing finger and a fist apart. A pose has to hold for about 90 ms before it counts, so the cursor doesn't flicker between modes. A tap is a quick dip of the fingertip, measured against the size of the hand, so slow drift never selects anything.</p>
     </div>
     <figure class="wide reveal">
       <div class="frame">
