@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gesture Gallery · Divy Rajauria</title>
-<meta name="description" content="Making a webcam an input device without making anyone depend on it: a hand-gesture photo gallery, designed and built in one HTML file.">
+<title>Look, no mouse · Divy Rajauria</title>
+<meta name="description" content="Look, no mouse: a photo gallery you browse with hand gestures, designed and built in one HTML file.">
 <style>
   /* Fonts are self-hosted on divy.work; the absolute URL is a fallback for previewing this file elsewhere. */
   @font-face { font-family: Satoshi; font-weight: 400; font-display: swap; src: url("/fonts/satoshi-400.woff2") format("woff2"), url("https://divy.work/fonts/satoshi-400.woff2") format("woff2"); }
@@ -66,7 +66,7 @@
   .col { width: var(--col); margin: 0 auto; }
   .wide { width: var(--wide); margin-left: auto; margin-right: auto; }
   .mono { font: 400 11px/1.6 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); }
-  h1 { font: 700 44px/1.1 var(--display); letter-spacing: -.04em; margin: 14px 0 18px; }
+  h1 { font: 700 64px/1 var(--display); letter-spacing: -.05em; margin: 14px 0 20px; text-wrap: balance; }
   h2 { font: 700 32px/1.15 var(--display); letter-spacing: -.04em; margin-top: 8px; }
   h3 { font: 700 22px/1.2 var(--display); letter-spacing: -.03em; margin: 36px 0 6px; }
   .thesis { font: 400 19px/1.45 var(--sans); color: var(--ink); margin: 6px 0 22px; }
@@ -75,7 +75,7 @@
   p strong { color: var(--ink); font-weight: 400; }
   .lede { font-size: 18px; color: var(--ink2); }
   section { padding-top: 120px; scroll-margin-top: 40px; }
-  @media (max-width: 640px) { h1 { font-size: 34px; } h2 { font-size: 27px; } section { padding-top: 88px; } }
+  @media (max-width: 640px) { h1 { font-size: 46px; } h2 { font-size: 27px; } section { padding-top: 88px; } }
 
   /* meta + stat */
   .meta { display: grid; grid-template-columns: 100px 1fr; gap: 10px 20px; padding: 22px 0; margin: 30px 0 34px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -182,6 +182,26 @@
   .paused .wire span { animation-play-state: paused; }
   @media (max-width: 620px) { .pipe { grid-template-columns: 1fr; gap: 10px; } .wire { height: 22px; width: 2px; margin: 0 auto; } .wire span { display: none; } }
 
+  /* code snippets */
+  figure.code { background: var(--card); border: 1px solid var(--card-edge); border-radius: 14px; overflow: hidden; }
+  .code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px 10px 18px; border-bottom: 1px solid var(--card-edge); }
+  .code-head .mono { font-size: 10px; }
+  .copy { font: 500 10px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); background: #fff; border: 1px solid var(--card-edge); border-radius: 999px; padding: 7px 12px; cursor: pointer; transition: background .2s, color .2s; }
+  .copy:hover { background: var(--ink); color: #fff; }
+  .copy.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+  figure.code pre { margin: 0; padding: 16px 18px 18px; overflow-x: auto; font: 400 12.5px/1.7 var(--mono); color: var(--ink); tab-size: 2; }
+  .tok-c { color: rgba(18, 17, 16, .45); }
+  .tok-k { color: var(--accent); }
+  .tok-s { color: #1f7a4a; }
+  .tok-n { color: #2a5bd7; }
+
+  /* other experiments */
+  .experiments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+  .exp { border: 1px dashed rgba(18, 17, 16, .25); border-radius: 14px; aspect-ratio: 4 / 3; display: grid; place-items: center; text-align: center; padding: 18px; background: var(--card); }
+  .exp .mono { font-size: 10px; }
+  .exp p { font-size: 14px; margin-top: 6px; color: var(--ink3); }
+  @media (max-width: 520px) { .experiments { grid-template-columns: 1fr; } }
+
   /* closing */
   .end { margin-top: 140px; padding-top: 40px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .end a { font: 400 11px/1.6 var(--mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; color: var(--ink3); }
@@ -213,6 +233,7 @@
   <a href="#performance">Performance</a>
   <a href="#tests">Testing</a>
   <a href="#worked">How I worked</a>
+  <a href="#experiments">More experiments</a>
   <a href="#next">What's next</a>
 </nav>
 
@@ -221,8 +242,8 @@
   <section id="overview" data-num="01" data-name="Overview" style="padding-top:0">
     <div class="col">
       <div class="mono">Playground · Gesture Gallery</div>
-      <h1>Making a webcam an input device, without making anyone depend on it.</h1>
-      <p class="lede">A photo gallery you browse with your hands, built in one HTML file. Recognising a hand was the easy part. The work was everything around it: teaching four gestures in seconds, staying useful when the camera says no, and leaving the model room to run.</p>
+      <h1>Look, no mouse.</h1>
+      <p class="lede">A photo gallery you browse by waving at your webcam. Point to pick, make an OK sign to grab, pull back to zoom, make a fist to scroll. Recognising a hand was the easy part. The work was everything around it: teaching the gestures in seconds, staying useful when the camera says no, and leaving the model room to run.</p>
 
       <dl class="meta">
         <dt>Role</dt><dd>Design and front end, solo. Built with AI assistance.</dd>
@@ -237,9 +258,9 @@
 
     <figure class="wide reveal">
       <div class="frame">
-        <video src="media/gesture-gallery/palm.mp4" poster="media/gesture-gallery/palm-poster.jpg" muted loop playsinline preload="metadata" aria-label="An open palm moves the cursor across the photo grid; the photo under it is outlined. The camera preview shows the tracked hand."></video>
+        <video src="media/gesture-gallery/hand.mp4" poster="media/gesture-gallery/hand-poster.jpg" muted loop playsinline preload="metadata" aria-label="A hand moves in front of a laptop webcam; on screen the cursor glides over the photo grid, grabs a photo and enlarges it."></video>
       </div>
-      <figcaption>An open palm moves the cursor. The preview shows what the camera tracks.</figcaption>
+      <figcaption>My hand, my laptop's webcam, no mouse. Recorded on an earlier build.</figcaption>
     </figure>
 
     <div class="col">
@@ -277,6 +298,14 @@
       <h2>Reading the hand</h2>
       <p class="thesis">Four poses from finger geometry, and one rule that stops accidents.</p>
       <p>MediaPipe gives 21 points on the hand in every camera frame. Everything after that is mine. Each fingertip is compared with its middle joint to tell an open palm, a pointing finger and a fist apart. A pose has to hold for about 90 ms before it counts, so the cursor doesn't flicker between modes. A tap is a quick dip of the fingertip, measured against the size of the hand, so slow drift never selects anything.</p>
+    </div>
+    <figure class="wide reveal">
+      <div class="frame">
+        <video src="media/gesture-gallery/palm.mp4" poster="media/gesture-gallery/palm-poster.jpg" muted loop playsinline preload="metadata" aria-label="An open palm moves the cursor across the photo grid; the photo under it is outlined. The camera preview shows the tracked hand."></video>
+      </div>
+      <figcaption>An open palm moves the cursor. The preview, bottom right, shows what the camera tracks.</figcaption>
+    </figure>
+    <div class="col">
       <p>The natural grab is a pinch. But a hand closing into a fist passes through a pinch on the way, so a plain pinch rule grabs photos whenever someone starts to scroll. I made the grab an OK sign instead: thumb to index, with the other three fingers up, checked on the current frame rather than the smoothed one. It's a less obvious gesture. I accepted that, because an accidental grab costs more than a gesture that takes a moment to learn.</p>
 
       <figure class="card reveal" id="hands">
@@ -295,6 +324,17 @@
         </div>
       </figure>
       <figcaption style="margin-top:-18px">Three fingers up is what separates a grab from a fist.</figcaption>
+
+      <figure class="code reveal">
+        <div class="code-head"><span class="mono">index.html · the grab rule</span><button class="copy" type="button" aria-label="Copy the grab rule code">Copy</button></div>
+<pre><code>// Grab only on an OK sign: thumb meets index while the other three
+// fingers stay up. Checked on this frame's raw pose, not the smoothed
+// one, so a hand closing into a fist can't grab on its way down.
+if (!isPinching &amp;&amp; pinchRatio(lm) &lt; PINCH_RATIO &amp;&amp; rawPose === 'OPEN') {
+  const photo = photoUnderCursor();
+  if (photo) startPreview(photo, handSizeOf(lm));
+}</code></pre>
+      </figure>
 
       <h3>Depth, without a depth camera</h3>
       <p>Enlarging a photo is "move your hand back". A webcam can't measure distance, but the hand's size in the image is a good stand-in. As the hand gets smaller, the photo grows. Moving sideways drags the photo instead, so the two motions never fight.</p>
@@ -410,6 +450,17 @@
         </div>
       </figure>
 
+      <figure class="code reveal">
+        <div class="code-head"><span class="mono">index.html · the tracking loop</span><button class="copy" type="button" aria-label="Copy the tracking loop code">Copy</button></div>
+<pre><code>// The screen refreshes ~60 times a second; a webcam delivers ~30 frames.
+// Only run the model when the camera has a new frame for it.
+if (video.readyState &gt;= 2 &amp;&amp; video.currentTime !== lastVideoTime) {
+  lastVideoTime = video.currentTime;
+  await hands.send({ image: video });
+}
+requestAnimationFrame(frameLoop);</code></pre>
+      </figure>
+
       <p>Switching tabs now releases the camera, so its light goes off, and it reconnects quietly when you come back. I checked that one in a real browser window with real tabs, because the testing tool keeps every page "visible" and couldn't prove it.</p>
       <p class="quote reveal">Idle should cost nothing. Most of the fixes were deleting work.</p>
     </div>
@@ -423,6 +474,15 @@
       <p class="thesis">58 tests move a simulated hand through the real page.</p>
       <p>A test server can't wave at a camera. So the tests swap the tracking model for a stand-in that feeds hand positions frame by frame, and the page's own gesture code runs exactly as it would with a real hand. They cover every gesture, keyboard and mouse, every camera failure, the tour and its hints, Remove and Undo, the offline photo fallback, and reduced motion.</p>
       <p>To check the tests were real, I deliberately broke the OK-sign rule. The matching test failed straight away. They now run on every pull request, and a change that breaks a gesture can't reach the live site unnoticed.</p>
+
+      <figure class="code reveal">
+        <div class="code-head"><span class="mono">tests/gestures.spec.js · one of the 58</span><button class="copy" type="button" aria-label="Copy the test code">Copy</button></div>
+<pre><code>test('a curled-finger pinch does not grab', async ({ page }) =&gt; {
+  // hand(x, y, pose, options) builds the 21 points MediaPipe would report
+  await hold(page, hand(0.5, 0.5, 'POINTING', { pinch: true }), 10);
+  expect(await enlarged(page)).toEqual([]);
+});</code></pre>
+      </figure>
 
       <figure class="card reveal" id="pipe">
         <div class="mono">How a gesture is tested</div>
@@ -455,10 +515,26 @@
     </figure>
   </section>
 
-  <!-- 10 NEXT -->
-  <section id="next" data-num="10" data-name="What's next">
+  <!-- 10 OTHER EXPERIMENTS -->
+  <section id="experiments" data-num="10" data-name="More experiments">
     <div class="col">
       <div class="mono">10</div>
+      <h2>More hand experiments</h2>
+      <p class="thesis">The gallery was one of several. (Draft: clips coming from Divy's video.)</p>
+      <p>Placeholder copy: one or two lines on the other things I built with hand tracking, what each one tested, and what carried over into the gallery.</p>
+      <div class="experiments">
+        <div class="exp"><div><div class="mono">Experiment 01</div><p>Clip to come</p></div></div>
+        <div class="exp"><div><div class="mono">Experiment 02</div><p>Clip to come</p></div></div>
+        <div class="exp"><div><div class="mono">Experiment 03</div><p>Clip to come</p></div></div>
+        <div class="exp"><div><div class="mono">Experiment 04</div><p>Clip to come</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 NEXT -->
+  <section id="next" data-num="11" data-name="What's next">
+    <div class="col">
+      <div class="mono">11</div>
       <h2>What I'd change, and what's next</h2>
       <p>The performance numbers come from a slowed-down browser, not a real mid-range laptop, and they leave out the model's own cost. That's the next thing I'd measure, on borrowed hardware, before calling it fast.</p>
       <p>I'd also bring in other people's hands earlier. Every gesture threshold was tuned on mine, so the next round is a few people, a few lighting conditions, and a few minutes each, watching where the hints fire.</p>
@@ -477,6 +553,30 @@
 <script>
 (function () {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- code: light highlighting + copy ---------- */
+  document.querySelectorAll('figure.code code').forEach((code) => {
+    const raw = code.textContent;
+    const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const re = /(\/\/[^\n]*)|('(?:[^'\\]|\\.)*')|\b(if|const|let|await|async|return|test|expect|true|false)\b|\b(\d+(?:\.\d+)?)\b/g;
+    let out = '', last = 0, m;
+    while ((m = re.exec(raw))) {
+      out += esc(raw.slice(last, m.index));
+      const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'k' : 'n';
+      out += `<span class="tok-${cls}">${esc(m[0])}</span>`;
+      last = re.lastIndex;
+    }
+    code.innerHTML = out + esc(raw.slice(last));
+    code.dataset.raw = raw;
+  });
+  document.querySelectorAll('figure.code .copy').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const code = btn.closest('figure').querySelector('code');
+      const done = () => { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent = 'Selected · press ⌘C'; };
+      try { navigator.clipboard.writeText(code.dataset.raw).then(done, fallback); } catch (e) { fallback(); }
+    });
+  });
 
   /* ---------- section pill + contents ---------- */
   const sections = [...document.querySelectorAll('main section')];
