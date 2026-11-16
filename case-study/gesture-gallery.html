@@ -196,11 +196,15 @@
   .tok-n { color: #2a5bd7; }
 
   /* other experiments */
-  .experiments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
-  .exp { border: 1px dashed rgba(18, 17, 16, .25); border-radius: 14px; aspect-ratio: 4 / 3; display: grid; place-items: center; text-align: center; padding: 18px; background: var(--card); }
-  .exp .mono { font-size: 10px; }
-  .exp p { font-size: 14px; margin-top: 6px; color: var(--ink3); }
-  @media (max-width: 520px) { .experiments { grid-template-columns: 1fr; } }
+  .experiments { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 20px; margin-top: 34px; }
+  .exp { margin: 0; min-width: 0; }
+  .exp-wide { grid-column: 1 / -1; }
+  .exp .frame { border-radius: 12px; }
+  .exp-text { margin-top: 14px; }
+  .exp-text h3 { margin: 4px 0 6px; font-size: 20px; }
+  .exp-text p { font-size: 15px; line-height: 1.55; }
+  .exp-wide .exp-text { max-width: 550px; }
+  @media (max-width: 620px) { .experiments { grid-template-columns: 1fr; } }
 
   /* closing */
   .end { margin-top: 140px; padding-top: 40px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -258,9 +262,9 @@
 
     <figure class="wide reveal">
       <div class="frame">
-        <video src="media/gesture-gallery/hand.mp4" poster="media/gesture-gallery/hand-poster.jpg" muted loop playsinline preload="metadata" aria-label="A hand moves in front of a laptop webcam; on screen the cursor glides over the photo grid, grabs a photo and enlarges it."></video>
+        <video src="media/gesture-gallery/hand.mp4" poster="media/gesture-gallery/hand-poster.jpg" muted loop playsinline preload="metadata" aria-label="A hand moves in front of a laptop webcam. On screen the cursor glides over the photo grid, grabs and enlarges a photo, then selects photos by pointing."></video>
       </div>
-      <figcaption>My hand, my laptop's webcam, no mouse. Recorded on an earlier build.</figcaption>
+      <figcaption>My hand, my laptop's webcam, no mouse: point, grab, select.</figcaption>
     </figure>
 
     <div class="col">
@@ -520,14 +524,27 @@ requestAnimationFrame(frameLoop);</code></pre>
     <div class="col">
       <div class="mono">10</div>
       <h2>More hand experiments</h2>
-      <p class="thesis">The gallery was one of several. (Draft: clips coming from Divy's video.)</p>
-      <p>Placeholder copy: one or two lines on the other things I built with hand tracking, what each one tested, and what carried over into the gallery.</p>
-      <div class="experiments">
-        <div class="exp"><div><div class="mono">Experiment 01</div><p>Clip to come</p></div></div>
-        <div class="exp"><div><div class="mono">Experiment 02</div><p>Clip to come</p></div></div>
-        <div class="exp"><div><div class="mono">Experiment 03</div><p>Clip to come</p></div></div>
-        <div class="exp"><div><div class="mono">Experiment 04</div><p>Clip to come</p></div></div>
-      </div>
+      <p class="thesis">The gallery was one of several things I built to learn what hands are good at.</p>
+      <p>Before the gallery, I built smaller experiments. Each one tested a single thing a hand can do that a mouse can't, and what I learned from them shaped the gallery's gestures.</p>
+    </div>
+
+    <div class="wide experiments">
+      <figure class="exp exp-wide reveal">
+        <div class="frame"><video src="media/gesture-gallery/exp-slice.mp4" poster="media/gesture-gallery/exp-slice-poster.jpg" muted loop playsinline preload="metadata" aria-label="A fruit-slicing game: a glowing trail follows the index finger and cuts fruit in the air. The webcam view sits in the corner."></video></div>
+        <div class="exp-text"><div class="mono">Slice</div><h3>Your fingertip is the blade</h3><p>A glowing trail follows the index finger and cuts fruit as it flies. It tested speed: tracking has to keep up with a fast swipe, or the game feels broken.</p></div>
+      </figure>
+      <figure class="exp reveal">
+        <div class="frame"><video src="media/gesture-gallery/exp-noir.mp4" poster="media/gesture-gallery/exp-noir-poster.jpg" muted loop playsinline preload="metadata" aria-label="Two hands make L-shapes to frame part of the camera view; inside the frame the image turns black and white, labelled REC #0001."></video></div>
+        <div class="exp-text"><div class="mono">Noir</div><h3>Frame a shot with two hands</h3><p>Two L-shapes with thumbs and index fingers mark a frame, and whatever sits inside becomes a numbered black-and-white shot. It tested two hands working together to define a space.</p></div>
+      </figure>
+      <figure class="exp reveal">
+        <div class="frame"><video src="media/gesture-gallery/exp-water.mp4" poster="media/gesture-gallery/exp-water-poster.jpg" muted loop playsinline preload="metadata" aria-label="A sweep of the hand washes the room off the camera feed and reveals a sunlit landscape underneath."></video></div>
+        <div class="exp-text"><div class="mono">Water</div><h3>Sweep the room away</h3><p>A sweep of the hand washes the room off the camera feed and reveals a landscape underneath. It tested a gesture as a continuous brush instead of a one-off trigger.</p></div>
+      </figure>
+    </div>
+
+    <div class="col">
+      <p class="quote reveal">A gesture has to be obvious to make and hard to make by accident.</p>
     </div>
   </section>
 
